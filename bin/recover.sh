@@ -25,3 +25,4 @@ fi
 
 cd $RECOVERY_DIR
 sudo bash install_linux_fw_uuu.sh imx-boot-ccimx8x-sbc-pro-B0-2GB_32bit.bin-flash
+rm ~/.ssh/known_hosts

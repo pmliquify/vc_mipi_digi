@@ -17,3 +17,7 @@ do
         printf "."
 done
 printf " OK\n\n"
+
+# Set loglevel=8 at boot time 
+# setenv defargs xxx loglevel=8
+$TARGET_SHELL dmesg | grep 'mxc\|16-00\|vc-mipi'
