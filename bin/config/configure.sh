@@ -1,10 +1,12 @@
 #/bin/bash
 #
+clear
 
 WORKING_DIR=$(dirname $PWD)
 BIN_DIR=$WORKING_DIR/bin
 BUILD_DIR=$WORKING_DIR/build
 KERNEL_SOURCE=$BUILD_DIR/linux
+MODULES_DIR=$BUILD_DIR/modules
 SRC_DIR=$WORKING_DIR/src/cc8x
 TMP_DIR=$BUILD_DIR/downloads
 GCC_DIR=$BUILD_DIR/toolchain
