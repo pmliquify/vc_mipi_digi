@@ -277,17 +277,15 @@ int  main(int argc, char *argv[])
 		rc = fill_framebuffer_with_hourglasses(acFramebufferDev, sen.format.fmt.pix.width, sen.format.fmt.pix.height);
 	}
 
-	printf("Apply new Shutter and Gain Settings\n");
 	// Apply new Shutter and Gain Settings
-	// {
-	// 	rc =  sensor_set_shutter_gain(&sen, optGain, optShutter);
-	// 	if(rc<0)
-	// 	{
-	// 		printf("Warning:  Could not set Gain/Shutter!\n");
-	// 	}
-	// }
+	{
+		rc =  sensor_set_shutter_gain(&sen, optGain, optShutter);
+		if(rc<0)
+		{
+			printf("Warning:  Could not set Gain/Shutter!\n");
+		}
+	}
 
-	printf("Pre-Enqueue all capture buffers into the capture queue\n");
 	// Pre-Enqueue all capture buffers into the capture queue
 	{
 		for(bufIdx= 0; bufIdx< sen.qbufCount; bufIdx++)
@@ -300,7 +298,6 @@ int  main(int argc, char *argv[])
 		bufIdx = 0;
 	}
 
-	printf("sensor_streaming_start\n");
 	rc =  sensor_streaming_start(&sen);
 	if(rc<0){ee=-7+100*rc; goto quit;}
 
@@ -317,24 +314,27 @@ int  main(int argc, char *argv[])
 			continue; //Timeout occured and no capture is ready, sleep again.
 		}
 
-		printf("capture_buffer_dequeue\n");
 		rc =  capture_buffer_dequeue(bufIdx, &sen);
 		if(rc>0){continue;} // Buffer not yet available, wait again, should not happen if using sleep_for_next_capture().
 		if(rc<0){ee=-9+100*rc; goto quit;}
-
-		printf(".");
-
+		
 		switch(sen.format.type)
 		{
 			case V4L2_BUF_TYPE_VIDEO_CAPTURE:
-					rc =  process_capture(sen.format.fmt.pix.pixelformat, sen.qbuf[bufIdx].st[0], sen.format.fmt.pix.width, sen.format.fmt.pix.height, sen.format.fmt.pix.bytesperline, optStdOutIff1, netSrvIff1, &imgnetCfg, optFBOutIff1, optFileOutIff1, frameNr++, acFramebufferDev, &cfgWB);
-			break;
+				// printf("V4L2_BUF_TYPE_VIDEO_CAPTURE\n");
+				rc =  process_capture(sen.format.fmt.pix.pixelformat, sen.qbuf[bufIdx].st[0], 
+					sen.format.fmt.pix.width, sen.format.fmt.pix.height, sen.format.fmt.pix.bytesperline, 
+					optStdOutIff1, netSrvIff1, &imgnetCfg, optFBOutIff1, optFileOutIff1, frameNr++, acFramebufferDev, &cfgWB);
+				break;
 			case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE:
-					rc =  process_capture(sen.format.fmt.pix_mp.pixelformat, sen.qbuf[bufIdx].st[0], sen.format.fmt.pix_mp.width, sen.format.fmt.pix_mp.height, sen.format.fmt.pix_mp.plane_fmt[0].bytesperline, optStdOutIff1, netSrvIff1, &imgnetCfg, optFBOutIff1, optFileOutIff1, frameNr++, acFramebufferDev, &cfgWB);
-			break;
+				// printf("V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE\n");
+				rc =  process_capture(sen.format.fmt.pix_mp.pixelformat, sen.qbuf[bufIdx].st[0], 
+					sen.format.fmt.pix_mp.width, sen.format.fmt.pix_mp.height, sen.format.fmt.pix_mp.plane_fmt[0].bytesperline, 
+					optStdOutIff1, netSrvIff1, &imgnetCfg, optFBOutIff1, optFileOutIff1, frameNr++, acFramebufferDev, &cfgWB);
+				break;
 			default: ee= -10; goto quit;
 		}
-		if(rc<0){ee=-11+100*rc; goto quit;}
+		if(rc<0) {ee=-11+100*rc; goto quit;}
 
 		rc =  capture_buffer_enqueue(bufIdx, &sen);
 		if(rc<0){ee=-12+100*rc; goto quit;}
@@ -395,6 +395,43 @@ int  process_capture(unsigned int pixelformat, char *st, int dx, int dy, int pit
 	int    rc, ee;
 	image  imgConverted = NULL_IMAGE;
 	char   acFilename[256];
+
+	// printf("process: pixelformat: 0x%04x, dx: %u, dy: %u, pitch: %u - ", pixelformat, dx, dy, pitch);
+	// int y = dy/2;
+	// int y = 0;
+	// for (int i=0; i<40; i=i+2) {
+	// 	printf("%02x%02x ", st[y*pitch + i], st[y*pitch + i+1]);
+	// }
+	// printf("\n");
+	// y++;
+	// for (int i=0; i<40; i=i+2) {
+	// 	printf("%02x%02x ", st[y*pitch + i], st[y*pitch + i+1]);
+	// }
+	// printf("\n");
+
+	// for (int i=0; i<20; i=i+2) {
+	// 	short pixel = 0;
+	// 	pixel += st[dy*pitch/2 + i];
+	// 	pixel = pixel << 8;
+	// 	pixel += st[dy*pitch/2 + i+1];
+
+	// 	printf("%04x ", pixel);
+	// }
+	// printf("\n");
+	
+	// unsigned int brightness = 0;
+	// unsigned int bx = 0;
+	// int steps = 10;
+	// for(int y=0; y<dy; y+=dy/steps) {
+	// 	for (int x=0; x<pitch; x++) {
+	// 		bx += st[y*pitch + x];
+	// 	}
+	// 	bx /= pitch;
+	// 	// printf("(%u, %u) brightness: %u\n", pitch-1, y, brightness);
+	// 	brightness += bx;
+	// }
+	// brightness /= steps;
+	// printf("- brightness: %u\n", brightness);
 
 	// Allocate temporary image
 	{
@@ -807,7 +844,8 @@ int  sensor_open(char *dev_video_device, VCMipiSenCfg *sen, unsigned int qbufCou
 	// Set Pixelformat, Width and Height
 	{
 		struct v4l2_format format;
-		format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_SRGGB8;
+		format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_SRGGB10;
+		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 		format.fmt.pix.width = 1920;
 		format.fmt.pix.height = 1080;
 		rc = ioctl(sen->fd, VIDIOC_S_FMT, &format);

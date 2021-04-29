@@ -55,19 +55,19 @@ static int vc_probe(struct i2c_client *client)
 
 	mutex_init(&camera->lock);
 
-	camera->mod_ctrl.client_sen = client;
-	camera->mod_ctrl.client_mod = vc_mod_setup(camera->mod_ctrl.client_sen, 0x10, &camera->mod_desc);
-	if (camera->mod_ctrl.client_mod == 0) {
+	camera->ctrl.client_sen = client;
+	camera->ctrl.client_mod = vc_mod_setup(camera->ctrl.client_sen, 0x10, &camera->desc);
+	if (camera->ctrl.client_mod == 0) {
 		goto free_ctrls;
 	}
 
-	ret = vc_mod_ctrl_init(&camera->mod_desc, &camera->mod_ctrl);
+	ret = vc_mod_ctrl_init(&camera->ctrl, &camera->desc);
 	if (ret) {
 		goto free_ctrls;
 	}
-	vc_mod_state_init(&camera->mod_ctrl, &camera->mod_state);
+	vc_mod_state_init(&camera->ctrl, &camera->state);
 
-	ret = vc_mod_reset_module(camera->mod_ctrl.client_mod, camera->mod_state.mode);
+	ret = vc_mod_reset_module(camera->ctrl.client_mod, camera->state.mode);
 	if (ret) {
 		return 0;
 	}

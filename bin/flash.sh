@@ -19,7 +19,7 @@ if [[ $1 == "a" || $1 == "f" || $1 == "d" ]]; then
         scp $KERNEL_SOURCE/arch/arm64/boot/dts/digi/ccimx8x-sbc-pro.dtb root@$TARGET_NAME:/mnt/linux/
 fi
 
-#$TARGET_SHELL /sbin/reboot
+$TARGET_SHELL /sbin/reboot
 
 if [[ $2 == "b" || $2 == "s" ]]; then
         printf "Waiting for $TARGET_NAME ..."

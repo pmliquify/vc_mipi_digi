@@ -1205,8 +1205,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
 	int ret;
 
-	v4l2_err(&isi_cap->sd, "%s\n", __FUNCTION__);
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	// dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
 
 	ret = mxc_isi_config_parm(isi_cap);
 	if (ret < 0)
@@ -1884,15 +1883,10 @@ static int mxc_isi_register_cap_device(struct mxc_isi_cap_dev *isi_cap,
 	if (ret)
 		goto err_free_ctx;
 
-	// vvv VC MIPI ********************************************************
 	/* Default configuration  */
-	// isi_cap->dst_f.width = 1280;
-	// isi_cap->dst_f.height = 800;
-	// isi_cap->dst_f.fmt = &mxc_isi_out_formats[0];
-	isi_cap->dst_f.width = 1920;
-	isi_cap->dst_f.height = 1080;
-	isi_cap->dst_f.fmt = &mxc_isi_out_formats[3];
-	// ^^^ ****************************************************************
+	isi_cap->dst_f.width = 1280;
+	isi_cap->dst_f.height = 800;
+	isi_cap->dst_f.fmt = &mxc_isi_out_formats[0];
 	isi_cap->src_f.fmt = isi_cap->dst_f.fmt;
 
 	isi_cap->cap_pad.flags = MEDIA_PAD_FL_SINK;
@@ -1923,9 +1917,8 @@ err_ctrl_free:
 #ifndef CONFIG_VIDEO_ECAM
 	mxc_isi_ctrls_delete(isi_cap);
 #endif
-// vvv *** VC MIPI ************************************************************
+
 err_me_cleanup:
-// ^^^ ************************************************************************
 	media_entity_cleanup(&vdev->entity);
 err_free_ctx:
 	return ret;

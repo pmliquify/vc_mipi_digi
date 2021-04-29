@@ -2,6 +2,7 @@
 #include <linux/errno.h>
 #include <linux/device.h>
 #include <linux/delay.h>
+#include "vc_mipi_modules.h"
 
 #define MOD_REG_RESET           0x0100 // register  0 [0x0100]: reset and init register (R/W)
 #define MOD_REG_STATUS          0x0101 // register  1 [0x0101]: status (R)
@@ -124,14 +125,14 @@ void vc_dump_reg_value(struct device *dev, int addr, int reg)
 	}
 }
 
-void vc_dump_hw_desc(struct device *dev, struct vc_mod_desc *mod_desc)
+void vc_dump_hw_desc(struct device *dev, struct vc_desc *desc)
 {
 	dev_info(dev, "VC MIPI Module - Hardware Descriptor\n");
-	dev_info(dev, "[ MAGIC  ] [ %s ]\n", mod_desc->magic);
-	dev_info(dev, "[ MANUF. ] [ %s ] [ MID=0x%04x ]\n", mod_desc->manuf, mod_desc->manuf_id);
-	dev_info(dev, "[ SENSOR ] [ %s %s ]\n", mod_desc->sen_manuf, mod_desc->sen_type);
-	dev_info(dev, "[ MODULE ] [ ID=0x%04x ] [ REV=0x%04x ]\n", mod_desc->mod_id, mod_desc->mod_rev);
-	dev_info(dev, "[ MODES  ] [ NR=0x%04x ] [ BPM=0x%04x ]\n", mod_desc->nr_modes, mod_desc->bytes_per_mode);
+	dev_info(dev, "[ MAGIC  ] [ %s ]\n", desc->magic);
+	dev_info(dev, "[ MANUF. ] [ %s ] [ MID=0x%04x ]\n", desc->manuf, desc->manuf_id);
+	dev_info(dev, "[ SENSOR ] [ %s %s ]\n", desc->sen_manuf, desc->sen_type);
+	dev_info(dev, "[ MODULE ] [ ID=0x%04x ] [ REV=0x%04x ]\n", desc->mod_id, desc->mod_rev);
+	dev_info(dev, "[ MODES  ] [ NR=0x%04x ] [ BPM=0x%04x ]\n", desc->nr_modes, desc->bytes_per_mode);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -146,17 +147,17 @@ struct i2c_client *vc_mod_get_client(struct i2c_adapter *adapter, __u8 addr)
 	return i2c_new_probed_device(adapter, &info, addr_list, NULL);
 }
 
-int vc_mod_set_power(struct i2c_client *client, int enable)
+int vc_mod_set_power(struct i2c_client *client, int on)
 {
 	struct device *dev = &client->dev;
 	int ret;
 
-	dev_dbg(dev, "%s(): Set module power: %s\n", __FUNCTION__, (enable == REG_RESET_PWR_UP) ? "up" : "down");
+	dev_dbg(dev, "%s(): Set module power: %s\n", __FUNCTION__, on ? "up" : "down");
 
-	ret = i2c_write_reg(client, MOD_REG_RESET, enable);
+	ret = i2c_write_reg(client, MOD_REG_RESET, on ? REG_RESET_PWR_UP : REG_RESET_PWR_DOWN);
 	if (ret)
 		dev_err(dev, "%s(): Unable to power %s the module (error: %d)\n", __FUNCTION__,
-			(enable == REG_RESET_PWR_UP) ? "up" : "down", ret);
+			(on == REG_RESET_PWR_UP) ? "up" : "down", ret);
 
 	return ret;
 }
@@ -249,15 +250,15 @@ int vc_mod_reset_module(struct i2c_client *client, int mode)
 	dev_dbg(dev, "%s(): Reset the module!\n", __FUNCTION__);
 
 	// TODO: Check if it really necessary to set mode in power down state.
-	ret = vc_mod_set_power(client, REG_RESET_PWR_DOWN);
+	ret = vc_mod_set_power(client, 0);
 	ret |= vc_mod_set_mode(client, mode);
-	ret |= vc_mod_set_power(client, REG_RESET_PWR_UP);
+	ret |= vc_mod_set_power(client, 1);
 	ret |= vc_mod_wait_until_module_is_ready(client);
 
 	return ret;
 }
 
-struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, struct vc_mod_desc *desc)
+struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, struct vc_desc *desc)
 {
 	struct i2c_adapter *adapter = client_sen->adapter;
 	struct device *dev_sen = &client_sen->dev;
@@ -296,7 +297,7 @@ struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, st
 	return client_mod;
 }
 
-int vc_mod_is_color_sensor(struct vc_mod_desc *desc)
+int vc_mod_is_color_sensor(struct vc_desc *desc)
 {
 	if (desc->sen_type) {
 		__u32 len = strnlen(desc->sen_type, 16);
@@ -307,7 +308,7 @@ int vc_mod_is_color_sensor(struct vc_mod_desc *desc)
 	return 0;
 }
 
-void vc_mod_state_init(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state)
+void vc_mod_state_init(struct vc_ctrl *ctrl, struct vc_state *state)
 {
 	state->fmt = &ctrl->fmts[ctrl->default_fmt];
 	state->width = ctrl->o_width;
@@ -338,7 +339,7 @@ int vc_mod_set_exposure(struct i2c_client *client, __u32 value, __u32 sen_clk)
 // ------------------------------------------------------------------------------------------------
 //  Helper Functions for the VC MIPI Sensors
 
-__u32 vc_sen_read_vmax(struct vc_mod_ctrl *ctrl)
+__u32 vc_sen_read_vmax(struct vc_ctrl *ctrl)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
@@ -360,7 +361,7 @@ __u32 vc_sen_read_vmax(struct vc_mod_ctrl *ctrl)
 	return vmax;
 }
 
-int vc_sen_write_vmax(struct vc_mod_ctrl *ctrl, __u32 vmax)
+int vc_sen_write_vmax(struct vc_ctrl *ctrl, __u32 vmax)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
@@ -368,13 +369,23 @@ int vc_sen_write_vmax(struct vc_mod_ctrl *ctrl, __u32 vmax)
 
 	dev_dbg(dev, "%s(): Write sensor VMAX: 0x%08x (%d)\n", __FUNCTION__, vmax, vmax);
 
-	ret = i2c_write_reg(client, ctrl->sen_reg_vmax_h, H_BYTE(vmax));
-	ret |= i2c_write_reg(client, ctrl->sen_reg_vmax_m, M_BYTE(vmax));
-	ret |= i2c_write_reg(client, ctrl->sen_reg_vmax_l, L_BYTE(vmax));
+	if (ctrl->sen_reg_vmax_l) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_vmax_l, L_BYTE(vmax));
+		ret = i2c_write_reg(client, ctrl->sen_reg_vmax_l, L_BYTE(vmax));
+	}
+	if (ctrl->sen_reg_vmax_m) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_vmax_m, M_BYTE(vmax));
+		ret |= i2c_write_reg(client, ctrl->sen_reg_vmax_m, M_BYTE(vmax));
+	}
+	if (ctrl->sen_reg_vmax_h) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_vmax_h, H_BYTE(vmax));
+		ret |= i2c_write_reg(client, ctrl->sen_reg_vmax_h, H_BYTE(vmax));
+	}
+	
 	return ret;
 }
 
-int vc_sen_write_exposure(struct vc_mod_ctrl *ctrl, __u32 exposure)
+int vc_sen_write_exposure(struct vc_ctrl *ctrl, __u32 exposure)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
@@ -382,19 +393,33 @@ int vc_sen_write_exposure(struct vc_mod_ctrl *ctrl, __u32 exposure)
 
 	dev_dbg(dev, "%s(): Write sensor exposure: 0x%08x (%d)\n", __FUNCTION__, exposure, exposure);
 
-	ret = i2c_write_reg(client, ctrl->sen_reg_expo_m, M_BYTE(exposure));
-	ret |= i2c_write_reg(client, ctrl->sen_reg_expo_l, L_BYTE(exposure));
+	if (ctrl->sen_reg_expo_l) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_expo_l, L_BYTE(exposure));
+		ret = i2c_write_reg(client, ctrl->sen_reg_expo_l, L_BYTE(exposure));
+	}
+	if (ctrl->sen_reg_expo_m) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_expo_m, M_BYTE(exposure));
+		ret |= i2c_write_reg(client, ctrl->sen_reg_expo_m, M_BYTE(exposure));
+	}
+	if (ctrl->sen_reg_expo_h) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_expo_h, H_BYTE(exposure));
+		ret |= i2c_write_reg(client, ctrl->sen_reg_expo_h, H_BYTE(exposure));
+	}
+
 	return ret;
 }
 
-int vc_sen_set_exposure(struct vc_mod_ctrl *ctrl, int value)
+int vc_sen_set_exposure(struct vc_ctrl *ctrl, int value)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
 	__u32 exposure = 0;
+	__u32 vmax = 0;
 	int ret = 0;
 
-	dev_dbg(dev, "%s(): Set sensor exposure: %u ms\n", __FUNCTION__, value);
+	dev_dbg(dev, "%s(): Set sensor exposure: %u us\n", __FUNCTION__, value);
+	dev_dbg(dev, "%s(): Checking Limits Min1: %u, Min2: %u, Max: %u us\n", __FUNCTION__,
+		ctrl->expo_time_min1, ctrl->expo_time_min2, ctrl->expo_time_max);
 
 	// TODO: It is assumed, that the exposure value is valid => remove clamping.
 	if (value < ctrl->expo_time_min1)
@@ -403,34 +428,75 @@ int vc_sen_set_exposure(struct vc_mod_ctrl *ctrl, int value)
 		value = ctrl->expo_time_max;
 
 	if (value < ctrl->expo_time_min2) {
-		// TODO: Find out which version is correct.
-		// __u32 vmax = vc_sen_read_vmax(client);
-		__u32 vmax = ctrl->expo_vmax;
+		dev_dbg(dev, "%s(): Set exposure by method: < Min2\n", __FUNCTION__);
+		switch (ctrl->mod_id) {
+		case MOD_ID_IMX226:
+			{
+				// TODO: Find out which version is correct.
+				// __u32 vmax = vc_sen_read_vmax(client);
+				vmax = ctrl->expo_vmax;
 
-		// exposure = (NumberOfLines - exp_time / 1Hperiod + toffset / 1Hperiod )
-		// shutter = {VMAX - SHR}*HMAX + 209(157) clocks
-		exposure = (vmax - ((__u32)(value)*16384 - ctrl->expo_toffset) / ctrl->expo_h1period);
-		dev_dbg(dev, "%s(): SHS = %d \n", __FUNCTION__, exposure);
+				// exposure = (NumberOfLines - exp_time / 1Hperiod + toffset / 1Hperiod )
+				// shutter = {VMAX - SHR}*HMAX + 209(157) clocks
+				exposure = (vmax - ((__u32)(value)*16384 - ctrl->expo_toffset) / ctrl->expo_h1period);
+			}
+			break;
+
+		case MOD_ID_IMX327:
+			{
+				vmax = 0x0465; // 1125
+			}
+			{
+				// range 1..1123
+				__u32 mode = 0; // Vorläufig 0 setzen bis set mode richtig implementiert ist.
+				__u32 lf = mode ? 2 : 1;
+				exposure = (1124 * 20000 - (__u32)(value) * 29 * 20 * lf) / 20000;
+			}
+			break;
+		}
 
 		// TODO: Is it realy nessecary to write the same vmax value back?
-		ret = vc_sen_write_vmax(ctrl, vmax);
-		ret |= vc_sen_write_exposure(ctrl, exposure);
-	} else {
-		// exposure = 5 + ((unsigned long long)(value * 16384) - tOffset)/h1Period;
-		__u64 divresult = ((__u64)value * 16384) - ctrl->expo_toffset;
-		// __u32 divisor   = IMX226_EXPO_H1PERIOD;
-		// __u32 remainder = (__u32)(do_div(divresult, divisor)); // caution: division result value at dividend!
-		exposure = 5 + (__u32)divresult;
-		dev_dbg(dev, "%s(): VMAX = %d \n", __FUNCTION__, exposure);
 
-		ret = vc_sen_write_exposure(ctrl, 0x0004);
-		ret |= vc_sen_write_vmax(ctrl, exposure);
+
+	} else {
+		dev_dbg(dev, "%s(): Set exposure by method: >= Min2\n", __FUNCTION__);
+		switch (ctrl->mod_id) {
+		case MOD_ID_IMX226:
+			{
+				// exposure = 5 + ((unsigned long long)(value * 16384) - tOffset)/h1Period;
+				// __u64 divresult = ((__u64)value * 16384) - ctrl->expo_toffset;
+				// __u32 divisor   = IMX226_EXPO_H1PERIOD;
+				// __u32 remainder = (__u32)(do_div(divresult, divisor)); // caution: division result value at dividend!
+				// vmax = 5 + (__u32)divresult;
+				vmax = ((__u64)value * 16384) - ctrl->expo_toffset;
+				exposure = 0x0004;
+			}
+			break;
+
+		case MOD_ID_IMX327:
+			{
+				// range 1123..
+				__u32 mode = 0; // Vorläufig 0 setzen bis set mode richtig implementiert ist.
+				__u32 lf = mode ? 2 : 1;
+				vmax = ( 1 * 20000 + (__u32)(value) * 29 * 20 * lf ) / 20000;
+				exposure = 0x0001;
+			}
+			break;
+		}
+	}
+
+	switch (ctrl->mod_id) {
+	case MOD_ID_IMX226:
+	case MOD_ID_IMX327:
+		ret  = vc_sen_write_vmax(ctrl, vmax);
+		ret |= vc_sen_write_exposure(ctrl, exposure);
+		break;
 	}
 
 	return ret;
 }
 
-int vc_sen_set_gain(struct vc_mod_ctrl *ctrl, int value)
+int vc_sen_set_gain(struct vc_ctrl *ctrl, int value)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
@@ -438,15 +504,21 @@ int vc_sen_set_gain(struct vc_mod_ctrl *ctrl, int value)
 
 	dev_dbg(dev, "%s(): Set sensor gain: %u\n", __FUNCTION__, value);
 
-	ret = i2c_write_reg(client, ctrl->sen_reg_gain_m, M_BYTE(value));
-	ret |= i2c_write_reg(client, ctrl->sen_reg_gain_l, L_BYTE(value));
+	if (ctrl->sen_reg_gain_l) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_gain_l, L_BYTE(value));
+		ret  = i2c_write_reg(client, ctrl->sen_reg_gain_l, L_BYTE(value));
+	}
+	if (ctrl->sen_reg_gain_m) {
+		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_gain_m, M_BYTE(value));
+		ret |= i2c_write_reg(client, ctrl->sen_reg_gain_m, M_BYTE(value));
+	}
 	if (ret)
 		dev_err(dev, "%s(): Couldn't set 'Gain' (error=%d)\n", __FUNCTION__, ret);
 
 	return ret;
 }
 
-int vc_sen_start_stream(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state)
+int vc_sen_start_stream(struct vc_ctrl *ctrl, struct vc_state *state)
 {
 	struct i2c_client *client_sen = ctrl->client_sen;
 	struct i2c_client *client_mod = ctrl->client_mod;
@@ -468,7 +540,7 @@ int vc_sen_start_stream(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state)
 	return ret;
 }
 
-int vc_sen_stop_stream(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state)
+int vc_sen_stop_stream(struct vc_ctrl *ctrl, struct vc_state *state)
 {
 	struct i2c_client *client_sen = ctrl->client_sen;
 	struct i2c_client *client_mod = ctrl->client_mod;
@@ -477,26 +549,29 @@ int vc_sen_stop_stream(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state)
 
 	dev_dbg(dev, "%s(): Stop streaming\n", __FUNCTION__);
 
+	// ********************************************************************
 	// TODO: Check if it really the "best" way to stop streaming by power down the sensor :)
-	ret = vc_mod_set_power(ctrl->client_mod, REG_RESET_PWR_DOWN);
-	if (ret)
-		return ret;
 
-	mdelay(200);
-	vc_mod_get_status(client_mod); // Read status just for debugging
+	// ret = vc_mod_set_power(ctrl->client_mod, 0);
+	// if (ret)
+	// 	return ret;
 
-	ret |= vc_mod_reset_module(client_mod, state->mode);
-	if(ctrl->io_control == 1) {
+	// mdelay(200);
+	// vc_mod_get_status(client_mod); // Read status just for debugging
+
+	// ret |= vc_mod_reset_module(client_mod, state->mode);
+	// ********************************************************************
+
+	if (ctrl->io_control == 1) {
 		ret |= vc_mod_set_ext_trig(client_mod, REG_EXTTRIG_DISABLE);
 		ret |= vc_mod_set_flash_output(client_mod, REG_IOCTRL_DISABLE);
 	}
-
-	// if (sensor_ext_trig)
-	//         ret |= vc_mod_set_exposure(client_mod, 0, 0);
+	if (state->ext_trig) {
+	        ret |= vc_mod_set_exposure(client_mod, 0, 0);
+	}
 
 	// Stop sensor streaming
 	ret |= vc_sen_write_table(client_sen, ctrl->stop_table);
-
 	if (ret)
 		dev_err(dev, "%s(): Unable to stop streaming (error=%d)\n", __FUNCTION__, ret);
 

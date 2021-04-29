@@ -4,20 +4,24 @@
 #include "vc_mipi_common.h"
 #include <linux/v4l2-mediabus.h>
 
-#define IMX327_SEN_REG_GAIN_L   0x0009
-#define IMX327_SEN_REG_GAIN_M   0x000A
-#define IMX327_SEN_REG_EXPO_L   0x000B
-#define IMX327_SEN_REG_EXPO_M	0x000C
+#define IMX327_SEN_REG_GAIN_L   0x3014
+#define IMX327_SEN_REG_GAIN_M   0x0000
 
-#define IMX327_SEN_REG_HMAX_L   0x7002
-#define IMX327_SEN_REG_HMAX_H   0x7003
-#define IMX327_SEN_REG_VMAX_L   0x7004
-#define IMX327_SEN_REG_VMAX_M   0x7005
-#define IMX327_SEN_REG_VMAX_H   0x7006
+#define IMX327_SEN_REG_EXPO_L   0x3020      // *
+#define IMX327_SEN_REG_EXPO_M   0x3021      // *
+#define IMX327_SEN_REG_EXPO_H   0x3022      // *
 
-#define IMX327_EXPO_TIME_MIN1   160
-#define IMX327_EXPO_TIME_MIN2   74480
-#define IMX327_EXPO_TIME_MAX    10000000
+// #define IMX327_SEN_REG_HMAX_L   0x7002
+// #define IMX327_SEN_REG_HMAX_H   0x7003
+
+#define IMX327_SEN_REG_VMAX_L   0x3018      // *
+#define IMX327_SEN_REG_VMAX_M   0x3019      // *
+#define IMX327_SEN_REG_VMAX_H   0x301A      // *
+
+#define IMX327_EXPO_TIME_MIN1   29          // *
+#define IMX327_EXPO_TIME_MIN2   38716       // *
+#define IMX327_EXPO_TIME_MAX    7767184     // *
+
 #define IMX327_EXPO_NRLINES     3694
 #define IMX327_EXPO_TOFFSET     47563  		// tOffset (U32)(2.903 * 16384.0)
 #define IMX327_EXPO_H1PERIOD    327680 		// h1Period 20.00us => (U32)(20.000 * 16384.0)

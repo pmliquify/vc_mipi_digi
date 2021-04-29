@@ -47,17 +47,14 @@ struct vc_camera {
 	struct v4l2_fwnode_endpoint ep; 	// the parsed DT endpoint info
 	struct mutex lock; 			// lock to protect all members below
 
-	struct vc_mod_desc mod_desc;
-	struct vc_mod_ctrl mod_ctrl;
-	struct vc_mod_state mod_state;
+	struct vc_desc desc;
+	struct vc_ctrl ctrl;
+	struct vc_state state;
 
-	// int model;              		// sensor model
 	// int sen_clk;            		// sen_clk: default=54Mhz imx183=72Mhz
 	// struct v4l2_captureparm streamcap;
 	// struct v4l2_pix_format pix;
-	// int num_lanes;          		// # of data lanes: 1, 2, 4
 	// int color;              		// color flag: 0=no, 1=yes
-	// int fpga_addr;          		// FPGA i2c address (def = 0x10)
 };
 
 static inline struct vc_camera *to_vc_camera(struct v4l2_subdev *sd)

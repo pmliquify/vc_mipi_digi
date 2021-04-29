@@ -15,6 +15,6 @@
 #define MOD_ID_IMX327           0x0327
 #define MOD_ID_IMX415           0x0415
 
-int vc_mod_ctrl_init(struct vc_mod_desc* desc, struct vc_mod_ctrl* ctrl);
+int vc_mod_ctrl_init(struct vc_ctrl* ctrl, struct vc_desc* desc);
 
 #endif // _VC_MIPI_MODULES_H

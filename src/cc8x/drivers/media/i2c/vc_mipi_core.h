@@ -9,7 +9,7 @@
 
 #define REG_TABLE_END 0xffff
 
-struct vc_mod_desc {
+struct vc_desc {
 	__u8 magic[12];
 	__u8 manuf[32];
 	__u16 manuf_id;
@@ -39,29 +39,31 @@ struct vc_framefmt {
     enum v4l2_colorspace colorspace;
 };
 
-struct vc_mod_ctrl {
+struct vc_ctrl {
+	int mod_id;
+	int mod_i2c_addr;
 	// Communication
 	struct i2c_client *client_sen;
 	struct i2c_client *client_mod;
-    int mod_i2c_addr;
 	// Fixed sensor programming
 	struct vc_table_entry *start_table;
 	struct vc_table_entry *stop_table;
 	struct vc_table_entry *mode_table;
+	// Frame
+	struct vc_framefmt *fmts;
+	int fmts_size;
+	int default_fmt;
+	__u32 o_width;
+	__u32 o_height;
 	// Variable sensor programming
 	__u32 sen_reg_vmax_l;
 	__u32 sen_reg_vmax_m;
 	__u32 sen_reg_vmax_h;
 	__u32 sen_reg_expo_l;
 	__u32 sen_reg_expo_m;
+	__u32 sen_reg_expo_h;
 	__u32 sen_reg_gain_l;
 	__u32 sen_reg_gain_m;
-	// Frame
-    struct vc_framefmt *fmts;
-    int fmts_size;
-    int default_fmt;
-	__u32 o_width;
-	__u32 o_height;
 	// Exposure
 	__u32 expo_time_min1;
 	__u32 expo_time_min2;
@@ -71,36 +73,40 @@ struct vc_mod_ctrl {
 	__u32 expo_h1period;
 	// Features
 	int default_mode;
+	int csi_lanes;
 	int io_control;
 };
 
-struct vc_mod_state {
+struct vc_state {
 	// Frame and Format
 	struct vc_framefmt *fmt;
 	__u32 width;
 	__u32 height;
 	int mode; // sensor mode
-    // IO flags
+	// IO flags
 	int flash_output; // flash output enable
 	int ext_trig; // ext. trigger flag: 0=no, 1=yes
 	// Status flags
+	int power_on;
 	int streaming;
 };
 
 // --- Helper Functions for the VC MIPI Controller Module -----------------------------------------
 
-struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, struct vc_mod_desc *desc);
-int vc_mod_is_color_sensor(struct vc_mod_desc *desc);
-void vc_mod_state_init(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state);
+struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, struct vc_desc *desc);
+int vc_mod_is_color_sensor(struct vc_desc *desc);
+void vc_mod_state_init(struct vc_ctrl *ctrl, struct vc_state *state);
+int vc_mod_set_power(struct i2c_client *client, int on);
+int vc_mod_set_mode(struct i2c_client *client, int mode);
 int vc_mod_reset_module(struct i2c_client *client_mod, int mode);
 int vc_mod_set_exposure(struct i2c_client *client_mod, __u32 value, __u32 sen_clk);
 
 // --- Helper Functions for the VC MIPI Sensors ---------------------------------------------------
 
 int vc_sen_write_table(struct i2c_client *client, struct vc_table_entry table[]);
-int vc_sen_set_exposure(struct vc_mod_ctrl *ctrl, int value);
-int vc_sen_set_gain(struct vc_mod_ctrl *ctrl, int value);
-int vc_sen_start_stream(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state);
-int vc_sen_stop_stream(struct vc_mod_ctrl *ctrl, struct vc_mod_state *state);
+int vc_sen_set_exposure(struct vc_ctrl *ctrl, int value);
+int vc_sen_set_gain(struct vc_ctrl *ctrl, int value);
+int vc_sen_start_stream(struct vc_ctrl *ctrl, struct vc_state *state);
+int vc_sen_stop_stream(struct vc_ctrl *ctrl, struct vc_state *state);
 
 #endif // _VC_MIPI_CORE_H

@@ -1,6 +1,5 @@
 #include "vc_mipi_subdev.h"
 #include "vc_mipi_camera.h"
-#include "vc_mipi_core.h"
 #include <linux/delay.h>
 
 // --- v4l2_subdev_core_ops ---------------------------------------------------
@@ -8,24 +7,36 @@
 int vc_sd_s_power(struct v4l2_subdev *sd, int on)
 {
 	struct vc_camera *camera = to_vc_camera(sd);
-	struct i2c_client *client_mod = camera->mod_ctrl.client_mod;
+	struct vc_ctrl *ctrl = &camera->ctrl;
+	struct vc_state *state = &camera->state;
+	struct i2c_client *client_mod = camera->ctrl.client_mod;
 	struct device *dev_mod = &client_mod->dev;
 	int ret;
 
 	dev_dbg(dev_mod, "%s(): Set power: %s\n", __FUNCTION__, on ? "on" : "off");
 
+	ret = vc_mod_set_power(client_mod, on);
+	if (ret) 
+		return ret;
+
 	if (on) {
-		/* restore controls */
+		// Restore controls. This function calls vc_sd_s_ctrl for all controls.
 		ret = v4l2_ctrl_handler_setup(sd->ctrl_handler);
 		if (ret) {
-			dev_err(dev_mod, "[vc-mipi subdev] %s: Failed to restore control handler\n", __FUNCTION__);
+			dev_err(dev_mod, "%s: Failed to restore Controls\n", __FUNCTION__);
+			return ret;
 		}
 	}
 
-	// TODO: Original implementation
-	// priv->on = on;
+	state->power_on = on;
 
-	return ret;
+	if (on) {
+		// vc_sen_set_exposure(ctrl, 10000);
+		vc_sen_set_gain(ctrl, 10);
+		vc_mod_set_mode(client_mod, state->mode);
+	}
+
+	return 0;
 }
 
 int vc_sd_queryctrl(struct v4l2_subdev *sd, struct v4l2_queryctrl *qc)
@@ -41,8 +52,8 @@ int vc_sd_try_ext_ctrls(struct v4l2_subdev *sd, struct v4l2_ext_controls *ctrls)
 int vc_sd_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
 {
 	struct vc_camera *camera = to_vc_camera(sd);
-	struct vc_mod_state *state = &camera->mod_state;
-	struct i2c_client *client_mod = camera->mod_ctrl.client_mod;
+	struct vc_state *state = &camera->state;
+	struct i2c_client *client_mod = camera->ctrl.client_mod;
 	struct device *dev = sd->dev;
 	struct v4l2_ctrl *ctrl;
 
@@ -70,28 +81,25 @@ int vc_sd_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
 		if (state->ext_trig) {
 			return vc_mod_set_exposure(client_mod, control->value, sen_clk);
 		} else {
-			return vc_sen_set_exposure(&camera->mod_ctrl, control->value);
+			return vc_sen_set_exposure(&camera->ctrl, control->value);
 		}
 
 	case V4L2_CID_GAIN:
-		return vc_sen_set_gain(&camera->mod_ctrl, control->value);
+		return vc_sen_set_gain(&camera->ctrl, control->value);
 	}
 
-	dev_err(dev, "[vc-mipi subdev] %s: ctrl(id:0x%x,val:0x%x) is not handled\n", __FUNCTION__, ctrl->id, ctrl->val);
+	dev_warn(dev, "%s(): ctrl(id:0x%x, val:0x%x) is not handled\n", __FUNCTION__, ctrl->id, ctrl->val);
 	return -EINVAL;
 }
 
 int vc_sd_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
 {
-	// struct vc_camera *camera = to_vc_camera(sd);
-	// struct i2c_client *client_mod = camera->client_mod;
-	// struct i2c_client *client_sen = camera->client_sen;
 	struct device *dev = sd->dev;
 	struct v4l2_ctrl *ctrl = v4l2_ctrl_find(sd->ctrl_handler, control->id);
 	if (ctrl == NULL)
 		return -EINVAL;
 
-	dev_dbg(dev, "%s(): Set control '%s' to value %d\n", __FUNCTION__, ctrl->name, control->value);
+	dev_dbg(dev, "%s(): Get control '%s' value %d\n", __FUNCTION__, ctrl->name, control->value);
 	return v4l2_g_ctrl(sd->ctrl_handler, control);
 }
 
@@ -103,6 +111,17 @@ __s32 vc_sd_get_ctrl_value(struct v4l2_subdev *sd, __u32 id)
 	// TODO: Errorhandling
 	return control.value;
 }
+
+int vc_s_ctrl(struct v4l2_ctrl *ctrl)
+{
+	// struct v4l2_subdev *sd = ctrl->priv;
+	// struct v4l2_control control;
+	// control.id = ctrl->id;
+	// control.value = ctrl->val;
+	// return vc_sd_s_ctrl(sd, &control);
+	return 0;
+}
+
 
 // --- v4l2_subdev_video_ops ---------------------------------------------------
 
@@ -122,9 +141,10 @@ int vc_sd_set_mode(struct vc_camera *camera)
 {
 	struct v4l2_subdev *sd = &camera->sd;
 	struct device *dev = sd->dev;
-	struct vc_mod_state *state = &camera->mod_state;
-	struct i2c_client *client_sen = camera->mod_ctrl.client_sen;
-	struct i2c_client *client_mod = camera->mod_ctrl.client_mod;
+	struct vc_ctrl *ctrl = &camera->ctrl;
+	struct vc_state *state = &camera->state;
+	struct i2c_client *client_sen = camera->ctrl.client_sen;
+	struct i2c_client *client_mod = camera->ctrl.client_mod;
 	int ret = 0;
 	int code = 0;
 	int mode = 0;
@@ -137,24 +157,32 @@ int vc_sd_set_mode(struct vc_camera *camera)
 	// pix_fmt = V4L2_PIX_FMT_SRGGB8;
 	code = state->fmt->code;
 
-	if (code == V4L2_PIX_FMT_GREY || code == V4L2_PIX_FMT_SRGGB8) {
-		mode = 0; // 8-bit
+	switch(ctrl->mod_id) {
+	case MOD_ID_IMX226:
+		if (code == V4L2_PIX_FMT_GREY || code == V4L2_PIX_FMT_SRGGB8) {
+			mode = 0; // 8-bit
 
-	} else if (code == V4L2_PIX_FMT_Y10 || code == V4L2_PIX_FMT_SRGGB10) {
-		mode = 1; // 10-bit
+		} else if (code == V4L2_PIX_FMT_Y10 || code == V4L2_PIX_FMT_SRGGB10) {
+			mode = 1; // 10-bit
 
-	} else if (code == V4L2_PIX_FMT_Y12 || code == V4L2_PIX_FMT_SRGGB12) {
-		mode = 2; // 12-bit
+		} else if (code == V4L2_PIX_FMT_Y12 || code == V4L2_PIX_FMT_SRGGB12) {
+			mode = 2; // 12-bit
+		}
+		if (ctrl->csi_lanes == 4) {
+		 	mode += 6;
+		}
+		if (state->ext_trig) {
+			mode += 3;
+		}
+		break;
+
+	case MOD_ID_IMX327:
+		mode = 0;
+		if (ctrl->csi_lanes == 4) {
+		 	mode = 1;
+		}
+		break;
 	}
-
-	// if (camera->num_lanes == 4) {
-	// 	sensor_mode += 6;
-	// }
-
-	// Ext. trigger mode
-	// if (camera->sensor_ext_trig) {
-	// 	sensor_mode += 3;
-	// }
 
 	// Change VC MIPI sensor mode
 	if (state->mode != mode) {
@@ -162,8 +190,8 @@ int vc_sd_set_mode(struct vc_camera *camera)
 
 		// TODO: Check if it is realy necessary to reset the module.
 		ret = vc_mod_reset_module(client_mod, mode);
-		ret |= vc_sen_set_gain(&camera->mod_ctrl, vc_sd_get_ctrl_value(sd, V4L2_CID_GAIN));
-		ret |= vc_sen_set_exposure(&camera->mod_ctrl, vc_sd_get_ctrl_value(sd, V4L2_CID_EXPOSURE));
+		ret |= vc_sen_set_gain(&camera->ctrl, vc_sd_get_ctrl_value(sd, V4L2_CID_GAIN));
+		ret |= vc_sen_set_exposure(&camera->ctrl, vc_sd_get_ctrl_value(sd, V4L2_CID_EXPOSURE));
 		if (ret) {
 			dev_err(dev, "%s(): Unable to set mode: 0x%02x (error=%d)\n", __func__, mode, ret);
 			return ret;
@@ -175,14 +203,14 @@ int vc_sd_set_mode(struct vc_camera *camera)
 		dev_dbg(dev, "%s(): Current mode: 0x%02x\n", __func__, state->mode);
 	}
 
-	return vc_sen_write_table(client_sen, camera->mod_ctrl.mode_table);
+	return vc_sen_write_table(client_sen, camera->ctrl.mode_table);
 }
 
 int vc_sd_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct vc_camera *camera = to_vc_camera(sd);
-	struct vc_mod_ctrl *ctrl = &camera->mod_ctrl;
-	struct vc_mod_state *state = &camera->mod_state;
+	struct vc_ctrl *ctrl = &camera->ctrl;
+	struct vc_state *state = &camera->state;
 	struct device *dev = sd->dev;
 	int ret = 0;
 
@@ -230,11 +258,11 @@ int vc_sd_get_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg, st
 	struct v4l2_mbus_framefmt *mf = &format->format;
 	struct device *dev = sd->dev;
 
-	mf->code = camera->mod_state.fmt->code;
-	// mf->width = camera->mod_state.width;
-	// mf->height = camera->mod_state.height;
-	mf->width = camera->mod_ctrl.o_width;
-	mf->height = camera->mod_ctrl.o_height;
+	mf->code = camera->state.fmt->code;
+	// mf->width = camera->state.width;
+	// mf->height = camera->state.height;
+	mf->width = camera->ctrl.o_width;
+	mf->height = camera->ctrl.o_height;
 
 	dev_dbg(dev, "%s(): v4l2_mbus_framefmt <- (code: 0x%04x, width: %u, height: %u)\n", __FUNCTION__, mf->code,
 		mf->width, mf->height);
@@ -292,8 +320,8 @@ int vc_sd_get_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg, st
 int vc_sd_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg, struct v4l2_subdev_format *format)
 {
 	struct vc_camera *camera = to_vc_camera(sd);
-	struct vc_mod_ctrl *ctrl = &camera->mod_ctrl;
-	struct vc_mod_state *state = &camera->mod_state;
+	struct vc_ctrl *ctrl = &camera->ctrl;
+	struct vc_state *state = &camera->state;
 	struct v4l2_mbus_framefmt *mf = &format->format;
 	struct device *dev = sd->dev;
 	int i;
@@ -317,23 +345,23 @@ int vc_sd_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg, st
 		state->fmt = fmt;
 	}
 
-	// if (mf->width > camera->mod_ctrl.o_width) {
-	// 	camera->mod_state.width = camera->mod_ctrl.o_width;
+	// if (mf->width > camera->ctrl.o_width) {
+	// 	camera->state.width = camera->ctrl.o_width;
 	// } else if (mf->width < 0) {
-	// 	camera->mod_state.width = 0;
+	// 	camera->state.width = 0;
 	// } else {
-	// 	camera->mod_state.width = mf->width;
+	// 	camera->state.width = mf->width;
 	// }
-	// dev_dbg(dev, "%s(): Set width: %u\n", __FUNCTION__, camera->mod_state.width);
+	// dev_dbg(dev, "%s(): Set width: %u\n", __FUNCTION__, camera->state.width);
 	
-	// if (mf->height > camera->mod_ctrl.o_height) {
-	// 	camera->mod_state.height = camera->mod_ctrl.o_height;
+	// if (mf->height > camera->ctrl.o_height) {
+	// 	camera->state.height = camera->ctrl.o_height;
 	// } else if (mf->height < 0) {
-	// 	camera->mod_state.height = 0;
+	// 	camera->state.height = 0;
 	// } else {
-	// 	camera->mod_state.height = mf->height;
+	// 	camera->state.height = mf->height;
 	// }
-	// dev_dbg(dev, "%s(): Set height: %u\n", __FUNCTION__, camera->mod_state.height);
+	// dev_dbg(dev, "%s(): Set height: %u\n", __FUNCTION__, camera->state.height);
 
 	return 0;
 
@@ -373,10 +401,10 @@ int vc_sd_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg, st
 // 	if (fse->index > 0)
 // 		return -EINVAL;
 
-// 	fse->max_width = 			camera->mod_ctrl.frame_dx;
-// 	fse->min_width = 			camera->mod_ctrl.frame_dx;
-// 	fse->max_height = 			camera->mod_ctrl.frame_dy;
-// 	fse->min_height = 			camera->mod_ctrl.frame_dy;
+// 	fse->max_width = 			camera->ctrl.frame_dx;
+// 	fse->min_width = 			camera->ctrl.frame_dx;
+// 	fse->max_height = 			camera->ctrl.frame_dy;
+// 	fse->min_height = 			camera->ctrl.frame_dy;
 
 // 	return 0;
 // }
@@ -392,10 +420,12 @@ int vc_sd_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg, st
 
 const struct v4l2_subdev_core_ops vc_core_ops = {
 	.s_power = vc_sd_s_power,
+// vvv Toradex Ixora Apalis ***************************************************
 	// .queryctrl = vc_sd_queryctrl,
 	// .try_ext_ctrls = vc_sd_try_ext_ctrls,
 	// .s_ctrl = vc_sd_s_ctrl,
 	// .g_ctrl = vc_sd_g_ctrl,
+// ^^^ ************************************************************************
 };
 
 const struct v4l2_subdev_video_ops vc_video_ops = {
@@ -424,10 +454,17 @@ const struct v4l2_ctrl_ops vc_ctrl_ops = {
 	// .try_ext_ctrls = vc_try_ext_ctrls,
 	// .s_ctrl = vc_s_ctrl,
 	// .g_ctrl = vc_g_ctrl,
+// vvv Toradex Dahlia Verdin **************************************************
+	// .s_ctrl = vc_s_ctrl,
+// ^^^ ************************************************************************
+// vvv Digi ConnectCore8X Dev Kit *********************************************
+	.s_ctrl = vc_s_ctrl,
+// ^^^ ************************************************************************
 };
 
 struct v4l2_ctrl_config ctrl_config_list[] = {
 	{
+		// Leads to a hangup while booting on the DIGI ConnectCore8X Dev Kit
 		// .ops = &vc_ctrl_ops,
 		.id = V4L2_CID_GAIN,
 		.name = "Gain", // Do not change the name field for the controls!
@@ -439,6 +476,7 @@ struct v4l2_ctrl_config ctrl_config_list[] = {
 		.step = 1,
 	},
 	{
+		// Leads to a hangup while booting on the DIGI ConnectCore8X Dev Kit
 		// .ops = &vc_ctrl_ops,
 		.id = V4L2_CID_EXPOSURE,
 		.name = "Exposure", // Do not change the name field for the controls!
@@ -466,15 +504,17 @@ int vc_sd_init(struct v4l2_subdev *sd, struct i2c_client *client)
 	ctrl_hdl = devm_kzalloc(dev, sizeof(*ctrl_hdl), GFP_KERNEL);
 	ret = v4l2_ctrl_handler_init(ctrl_hdl, 2);
 	if (ret) {
-		dev_err(dev, "[vc-mipi subdev] %s: Failed to init control handler\n", __FUNCTION__);
+		dev_err(dev, "%s(): Failed to init control handler\n", __FUNCTION__);
 		return ret;
 	}
 
 	for (i = 0; i < num_ctrls; i++) {
+		// Leads to a hangup while booting on the DIGI ConnectCore8X Dev Kit
+		// when v4l2_ctrl_new_custom(..., sd) is set.
 		// ctrl_config_list[i].ops = &vc_ctrl_ops;
 		ctrl = v4l2_ctrl_new_custom(ctrl_hdl, &ctrl_config_list[i], NULL);
 		if (ctrl == NULL) {
-			dev_err(dev, "[vc-mipi subdev] %s: Failed to init %s ctrl\n", __FUNCTION__,
+			dev_err(dev, "%s(): Failed to init %s ctrl\n", __FUNCTION__,
 				ctrl_config_list[i].name);
 			continue;
 		}
@@ -482,7 +522,7 @@ int vc_sd_init(struct v4l2_subdev *sd, struct i2c_client *client)
 
 	if (ctrl_hdl->error) {
 		ret = ctrl_hdl->error;
-		dev_err(dev, "[vc-mipi subdev] %s: control init failed (%d)\n", __FUNCTION__, ret);
+		dev_err(dev, "%s(): control init failed (%d)\n", __FUNCTION__, ret);
 		goto error;
 	}
 
