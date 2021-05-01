@@ -2,7 +2,23 @@
 #
 . config/configure.sh
 
-./patch.sh
+if [[ -z $1 ]]; then 
+        ./patch.sh f
+else
+        ./patch.sh
+fi 
+
+create_modules() {
+        rm -Rf $MODULES_DIR
+        mkdir -p $MODULES_DIR
+        export INSTALL_MOD_PATH=$MODULES_DIR
+        make modules_install
+        cd $MODULES_DIR
+        echo Create module archive ...
+        rm $BUILD_DIR/modules.tar.gz 
+        tar -czf ../modules.tar.gz .
+        rm -Rf $MODULES_DIR
+}
 
 unset LD_LIBRARY_PATH
 . $GCC_DIR/environment-setup-aarch64-dey-linux
@@ -15,37 +31,24 @@ make ccimx8_defconfig
 
 if [[ -z $1 ]]; then 
         make -j$(nproc)
+        create_modules
 fi
-
 if [[ $1 == "a" || $1 == "k" ]]; then 
         echo "Build Kernel ..."
         make -j$(nproc) Image.gz
 fi
 if [[ $1 == "a" || $1 == "m" ]]; then 
-        echo "Build Modules ..."   
-        rm -Rf $MODULES_DIR
-        rm $BUILD_DIR/modules.tar.gz 
-    
+        echo "Build Modules ..."      
         make -j$(nproc) modules
-        mkdir -p $MODULES_DIR
-        export INSTALL_MOD_PATH=$MODULES_DIR
-        make modules_install
-        cd $MODULES_DIR
-        echo Create module archive ...
-        tar -czf ../modules.tar.gz .
-        rm -Rf $MODULES_DIR
+        create_modules
 fi
 if [[ $1 == "a" || $1 == "d" ]]; then 
         echo "Build Device Tree ..."
-        make -j$(nproc) dtbs
+        make dtbs
 fi
-
-if [[ $1 == "v" ]]; then 
+if [[ $1 == "demo" ]]; then 
     cd $WORKING_DIR/src/vcmipidemo/linux
-    make clean
     make
     mv vcmipidemo $WORKING_DIR/test
     mv vcimgnetsrv $WORKING_DIR/test
 fi
-
-#make -j8 htmldocs

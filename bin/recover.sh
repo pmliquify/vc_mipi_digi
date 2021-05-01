@@ -25,10 +25,11 @@ if [ ! -d $RECOVERY_DIR ]; then
         sudo udevadm control --reload-rules
 fi
 
+clear
 echo "1. Connect a USB type-C cable between target and host."
 echo "2. Reboot device in U-Boot console and selecting the USB interface you want it to listen to."
 echo "   => fastboot 1"
-
+echo "Press a key"
 read -n 1
 
 cd $RECOVERY_DIR
