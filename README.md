@@ -48,17 +48,17 @@ When we use the **$** sign it is meant that the command is executed on the host 
      $ ./build.sh
    ```
 
-5. Prepare the target for recovery (DIGI original doc: [Recover your device - Update bootloader from USB using Fastboot](
-https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yocto_t_recover-device_8#update-bootloader-from-usb-using-fastboot))
+5. Install a fresh BSP Image to the target
    1. Connect a USB type-C cable between target and host. 
    2. Reboot device in U-Boot console and selecting the USB interface you want it to listen to by entering ```=> fastboot 1```
-   
-6. We provide a script to easily flash an image. It will download the tools from DIGI and start the recovery process.
-   ```
-     $ ./recover.sh
-   ```
+   3. We provide a script to easily flash an image. It will download the tools from DIGI and start the recovery process.
+      ```
+        $ ./recover.sh
+      ```
+    (DIGI original doc: [Recover your device - Update bootloader from USB using Fastboot](
+https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yocto_t_recover-device_8#update-bootloader-from-usb-using-fastboot))
 
-7. After boot up install the VC MIPI driver with the kernel image, modules and dtb files we have build in step 4.
+6. After boot up install the VC MIPI driver with the kernel image, modules and dtb files we have build in step 4.
    ```
      $ ./flash.sh a
    ```
