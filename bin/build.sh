@@ -41,10 +41,11 @@ if [[ $1 == "a" || $1 == "d" ]]; then
 fi
 
 if [[ $1 == "v" ]]; then 
-    cd $WORKING_DIR/src/vcmipidemo/src
+    cd $WORKING_DIR/src/vcmipidemo/linux
     make clean
-    make vcmipidemo
-    cp $WORKING_DIR/src/vcmipidemo/src/vcmipidemo $WORKING_DIR/test
+    make
+    mv vcmipidemo $WORKING_DIR/test
+    mv vcimgnetsrv $WORKING_DIR/test
 fi
 
 #make -j8 htmldocs

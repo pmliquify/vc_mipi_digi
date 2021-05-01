@@ -56,6 +56,7 @@ struct vc_ctrl {
 	__u32 o_width;
 	__u32 o_height;
 	// Variable sensor programming
+	__u32 sen_clk;
 	__u32 sen_reg_vmax_l;
 	__u32 sen_reg_vmax_m;
 	__u32 sen_reg_vmax_h;

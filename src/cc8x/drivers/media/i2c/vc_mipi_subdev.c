@@ -20,10 +20,11 @@ int vc_sd_s_power(struct v4l2_subdev *sd, int on)
 		return ret;
 
 	if (on) {
+		dev_dbg(dev_mod, "%s(): Restore all controls ...\n", __FUNCTION__);
 		// Restore controls. This function calls vc_sd_s_ctrl for all controls.
 		ret = v4l2_ctrl_handler_setup(sd->ctrl_handler);
 		if (ret) {
-			dev_err(dev_mod, "%s: Failed to restore Controls\n", __FUNCTION__);
+			dev_err(dev_mod, "%s: Failed to restore controls\n", __FUNCTION__);
 			return ret;
 		}
 	}
@@ -31,9 +32,14 @@ int vc_sd_s_power(struct v4l2_subdev *sd, int on)
 	state->power_on = on;
 
 	if (on) {
-		// vc_sen_set_exposure(ctrl, 10000);
-		vc_sen_set_gain(ctrl, 10);
-		vc_mod_set_mode(client_mod, state->mode);
+		int exposure = 10000;
+		if (state->ext_trig) {
+			ret = vc_mod_set_exposure(client_mod, exposure, ctrl->sen_clk);
+		} else {
+			ret = vc_sen_set_exposure(ctrl, exposure);
+		}
+		ret |= vc_sen_set_gain(ctrl, 0);
+		ret |= vc_mod_set_mode(client_mod, state->mode);
 	}
 
 	return 0;
@@ -203,6 +209,7 @@ int vc_sd_set_mode(struct vc_camera *camera)
 		dev_dbg(dev, "%s(): Current mode: 0x%02x\n", __func__, state->mode);
 	}
 
+	dev_dbg(dev, "%s(): Set sensor ROI\n", __func__);
 	return vc_sen_write_table(client_sen, camera->ctrl.mode_table);
 }
 

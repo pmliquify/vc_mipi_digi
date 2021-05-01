@@ -315,7 +315,7 @@ void vc_mod_state_init(struct vc_ctrl *ctrl, struct vc_state *state)
 	state->height = ctrl->o_height;
 	state->mode = ctrl->default_mode;
 	state->flash_output = 0;
-	state->ext_trig = 0;
+	state->ext_trig = 0;	// 0=free run, 1=ext. trigger, 2=trigger self test
 	state->streaming = 0;
 }
 
@@ -328,10 +328,12 @@ int vc_mod_set_exposure(struct i2c_client *client, __u32 value, __u32 sen_clk)
 
 	dev_dbg(dev, "%s(): Set module exposure = 0x%08x (%u)\n", __FUNCTION__, exposure, exposure);
 
-	ret = i2c_write_reg(client, MOD_REG_EXPO_U, U_BYTE(exposure));
-	ret |= i2c_write_reg(client, MOD_REG_EXPO_H, H_BYTE(exposure));
+
+	ret  = i2c_write_reg(client, MOD_REG_EXPO_L, L_BYTE(exposure));
 	ret |= i2c_write_reg(client, MOD_REG_EXPO_M, M_BYTE(exposure));
-	ret |= i2c_write_reg(client, MOD_REG_EXPO_L, L_BYTE(exposure));
+	ret |= i2c_write_reg(client, MOD_REG_EXPO_H, H_BYTE(exposure));
+	ret |= i2c_write_reg(client, MOD_REG_EXPO_U, U_BYTE(exposure));
+	
 	return ret;
 }
 
@@ -428,7 +430,7 @@ int vc_sen_set_exposure(struct vc_ctrl *ctrl, int value)
 		value = ctrl->expo_time_max;
 
 	if (value < ctrl->expo_time_min2) {
-		dev_dbg(dev, "%s(): Set exposure by method: < Min2\n", __FUNCTION__);
+		dev_dbg(dev, "%s(): Set exposure by method 1 (%u < Min2 %u)\n", __FUNCTION__, value, ctrl->expo_time_min2);
 		switch (ctrl->mod_id) {
 		case MOD_ID_IMX226:
 			{
@@ -459,7 +461,7 @@ int vc_sen_set_exposure(struct vc_ctrl *ctrl, int value)
 
 
 	} else {
-		dev_dbg(dev, "%s(): Set exposure by method: >= Min2\n", __FUNCTION__);
+		dev_dbg(dev, "%s(): Set exposure by method 2 (%u >= Min2 %u)\n", __FUNCTION__, value, ctrl->expo_time_min2);
 		switch (ctrl->mod_id) {
 		case MOD_ID_IMX226:
 			{

@@ -22,6 +22,7 @@ void vc_init_imx226_ctrl(struct vc_ctrl *ctrl)
 	ctrl->o_width 		= IMX226_DX;
 	ctrl->o_height 		= IMX226_DY;
 
+	ctrl->sen_clk		= 54000000; 			// sen_clk default=54Mhz, imx183=72Mhz
 	ctrl->sen_reg_vmax_l 	= IMX226_SEN_REG_VMAX_L;
 	ctrl->sen_reg_vmax_m 	= IMX226_SEN_REG_VMAX_M;
 	ctrl->sen_reg_vmax_h 	= IMX226_SEN_REG_VMAX_H;	
@@ -39,7 +40,7 @@ void vc_init_imx226_ctrl(struct vc_ctrl *ctrl)
 	ctrl->expo_h1period 	= IMX226_EXPO_H1PERIOD;
 
 	ctrl->csi_lanes		= 2;
-	ctrl->default_mode 	= 0x00;			// reg2[7:0] = 0x00 :  8bit, 2 lanes, streaming
+	ctrl->default_mode 	= 0x00;				// reg2[7:0] = 0x00 :  8bit, 2 lanes, streaming
 	ctrl->io_control 	= 1;
 }
 
@@ -62,6 +63,7 @@ void vc_init_imx327_ctrl(struct vc_ctrl *ctrl)
 	ctrl->o_width 		= IMX327_DX;
 	ctrl->o_height 		= IMX327_DY;
 
+	ctrl->sen_clk		= 54000000; 			// sen_clk default=54Mhz, imx183=72Mhz
 	ctrl->sen_reg_vmax_l 	= IMX327_SEN_REG_VMAX_L;
 	ctrl->sen_reg_vmax_m 	= IMX327_SEN_REG_VMAX_M;
 	ctrl->sen_reg_vmax_h 	= IMX327_SEN_REG_VMAX_H;
@@ -79,7 +81,7 @@ void vc_init_imx327_ctrl(struct vc_ctrl *ctrl)
 	ctrl->expo_h1period 	= IMX327_EXPO_H1PERIOD;
 	
 	ctrl->csi_lanes		= 2;
-	ctrl->default_mode 	= 0x00;			// reg2[7:0] = 0x00 : 10bit streaming, 2 lanes
+	ctrl->default_mode 	= 0x00;				// reg2[7:0] = 0x00 : 10bit streaming, 2 lanes
 	ctrl->io_control 	= 0;
 }
 
