@@ -29,7 +29,7 @@ Linux kernel version: 5.4.84
 # Installation
 When we use the **$** sign it is meant that the command is executed on the host PC. A **#** sign indicates that you have to execute the command on the target machine.  
 
-1. Follow the instruction from DIGI to setup your board. [Step 2 - Set up the hardware](https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yocto-gs_t_set-up-hw_8x)
+1. Follow the instruction from DIGI to setup your board. (DIGI original doc: [Step 2 - Set up the hardware](https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yocto-gs_t_set-up-hw_8x))
 
 2. Create a directory and clone the repository   
    ```
@@ -48,7 +48,7 @@ When we use the **$** sign it is meant that the command is executed on the host 
      $ ./build.sh
    ```
 
-5. Prepare the target for recovery ([The original instructions from DIGI](
+5. Prepare the target for recovery (DIGI original doc: [Recover your device](
 https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yocto_t_recover-device_8))
    1. Connect a USB type-C cable between target and host. 
    2. Reboot device in U-Boot console and selecting the USB interface you want it to listen to by entering ```=> fastboot 1```
@@ -130,4 +130,6 @@ The system should start properly. *(There are some error messages that can be ig
         img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - f050 70c0 50a0 e0c0 3060 0070 2000 d010 c0b0 90c0 
         ...
       ```
-      On Windows you should see the live image stream. 
+      On Windows you should see the live image stream.   
+      
+      ![vcmipidemo screenshot](https://raw.githubusercontent.com/pmliquify/vc_mipi_digi/main/docs/vcmipidemo_screenshot.png)
