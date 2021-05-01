@@ -97,7 +97,7 @@ The system should start properly. *(There are some error messages that can be ig
 
 3. Start the vcmipidemo to stream the image to the frontend.   
    **Please do all in the described order!**
-   1. Open a new terminal, login and start the vcimgnetsrv. The server starts to listen for a connection.
+   1. Open a new terminal, login and start the vcimgnetsrv. The server starts to listen for the connection from the VCImgNetClient.
       ```
         $ ssh root@ccimx8x-sbc-pro
         # ./test/vcimgnetsrv
@@ -106,20 +106,20 @@ The system should start properly. *(There are some error messages that can be ig
       ```
    
    2. Execute the python script **vcimgnetclient.py**. 
-      * The GUI from the vcimgnetclient should show up. 
-      * Click the *Receive Image* Button.
-      * In the first terminal you should see that the client had conneced to the server.
+      * The windows from the vcimgnetclient should show up. 
+      * Click the **Receive Image** Button.
+      * In the first terminal you should see that the client had connected to the server.
         ```
           # ./test/vcimgnetsrv
           Start VC Image Net Server ...
           Listen on port 2002
           Client connected!
         ```
-      * The plain gray mainframe in the GUI should change to a diagonal hatched pattern. 
-        A moving bar shows that the app is waiting for image data.   
+      * The plain gray mainframe in the VCImgNetClient window should change to a diagonal hatched pattern. 
+        A moving bar shows that the app is waiting to receive image data.   
       
-   3. Open a second terminal login and start the vcmipidemo to start the image stream. The application starts streaming 
-      an should show some image information an the first few bytes of the image.
+   3. Open a second terminal, login and start the vcmipidemo to start the image stream. The application starts streaming 
+      and should show some image information and the first few bytes from the image.
       ```
         $ ssh root@ccimx8x-sbc-pro
         # ./test/vcmipidemo -a
