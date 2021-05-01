@@ -48,8 +48,8 @@ When we use the **$** sign it is meant that the command is executed on the host 
      $ ./build.sh
    ```
 
-5. Prepare the target for recovery (DIGI original doc: [Recover your device](
-https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yocto_t_recover-device_8))
+5. Prepare the target for recovery (DIGI original doc: [Recover your device - Update bootloader from USB using Fastboot](
+https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yocto_t_recover-device_8#update-bootloader-from-usb-using-fastboot))
    1. Connect a USB type-C cable between target and host. 
    2. Reboot device in U-Boot console and selecting the USB interface you want it to listen to by entering ```=> fastboot 1```
    
