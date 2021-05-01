@@ -106,7 +106,7 @@ The system should start properly. *(There are some error messages that can be ig
       ```
    
    2. Execute the python script **vcimgnetclient.py**. 
-      * The windows from the vcimgnetclient should show up. 
+      * The window from the VCImgNetClient should show up. 
       * Click the **Receive Image** Button.
       * In the first terminal you should see that the client had connected to the server.
         ```
