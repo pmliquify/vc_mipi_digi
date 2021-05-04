@@ -25,16 +25,19 @@
 #define REG_RESET_PWR_UP        0x00
 #define REG_RESET_SENSOR        0x01   // reg0[0] = 0 sensor reset the sensor is held in reset when this bit is 1
 #define REG_RESET_PWR_DOWN      0x02   // reg0[1] = 0 power down power for the sensor is switched off
-
 #define REG_STATUS_NO_COM       0x00   // reg1[7:0] = 0x00 default, no communication with sensor possible
 #define REG_STATUS_READY        0x80   // reg1[7:0] = 0x80 sensor ready after successful initialization sequence
 #define REG_STATUS_ERROR        0x01   // reg1[7:0] = 0x01 internal error during initialization
+#define REG_TRIGGER_IN_ENABLE   0x01
+#define REG_TRIGGER_IN_DISABLE  0x00
 
-#define REG_EXTTRIG_ENABLE      0x01
-#define REG_EXTTRIG_DISABLE     0x00
+#define SEN_MODE_STANDBY        0x01
+#define SEN_MODE_OPERATING      0x00
 
-#define REG_IOCTRL_ENABLE       0x01
-#define REG_IOCTRL_DISABLE      0x00
+#define MASK_MODE_LANES         (FLAG_MODE_2_LANES | FLAG_MODE_4_LANES)
+#define MASK_IO_ENABLED         (FLAG_TRIGGER_IN | FLAG_FLASH_OUT)
+#define MASK_FIND_MODE          (MASK_MODE_LANES | FLAG_TRIGGER_IN)
+
 
 // ------------------------------------------------------------------------------------------------
 //  Helper Functions for I2C Communication
@@ -72,12 +75,14 @@ int i2c_read_reg(struct i2c_client *client, const __u16 addr)
 	return buf[0];
 }
 
-int i2c_write_reg(struct i2c_client *client, const __u16 addr, const __u8 data)
+int i2c_write_reg(struct device *dev, struct i2c_client *client, const __u16 addr, const __u8 value, const char* func)
 {
 	struct i2c_adapter *adap = client->adapter;
 	struct i2c_msg msg;
 	__u8 tx[3];
 	int ret;
+
+	dev_dbg(dev, "%s():   addr: 0x%04x <= value: 0x%02x\n", func, addr, value);
 
 	msg.addr = client->addr;
 	msg.buf = tx;
@@ -85,38 +90,62 @@ int i2c_write_reg(struct i2c_client *client, const __u16 addr, const __u8 data)
 	msg.flags = 0;
 	tx[0] = addr >> 8;
 	tx[1] = addr & 0xff;
-	tx[2] = data;
+	tx[2] = value;
 	ret = i2c_transfer(adap, &msg, 1);
 	mdelay(2);
 
 	return ret == 1 ? 0 : -EIO;
 }
 
-int vc_sen_write_table(struct i2c_client *client, struct vc_table_entry table[])
+int i2c_write_reg2(struct device *dev, struct i2c_client *client, struct vc_addr2 *addr, const __u16 value, const char* func)
 {
-	struct device *dev = &client->dev;
-	const struct vc_table_entry *reg;
-	int ret;
+	int ret = 0;
 
-	dev_dbg(dev, "%s(): Write sensor register table\n", __FUNCTION__);
+	if (addr->l)		
+		ret  = i2c_write_reg(dev, client, addr->l, L_BYTE(value), func);
+	if (addr->m)
+		ret |= i2c_write_reg(dev, client, addr->m, M_BYTE(value), func);
 
-	for (reg = table; reg->addr != REG_TABLE_END; reg++) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, reg->addr, reg->val);
-		ret = i2c_write_reg(client, reg->addr, reg->val);
-		if (ret < 0) {
-			dev_err(dev, "%s(): error=%d\n", __FUNCTION__, ret);
-			return ret;
-		}
-	}
+	return ret;
+}
 
-	return 0;
+__u32 i2c_read_reg3(struct device *dev, struct i2c_client *client, struct vc_addr3 *addr)
+{
+	int reg = 0;
+	__u32 value = 0;
+
+	reg = i2c_read_reg(client, addr->l);
+	if (reg)
+		value = (value << 8) | reg;
+	reg = i2c_read_reg(client, addr->m);
+	if (reg)
+		value = (value << 8) | reg;
+	reg = i2c_read_reg(client, addr->h);
+	if (reg)
+		value = reg;
+
+	return value;
+}
+
+int i2c_write_reg3(struct device *dev, struct i2c_client *client, struct vc_addr3 *addr, const __u16 value, const char *func)
+{
+	int ret = 0;
+
+	if (addr->l)
+		ret = i2c_write_reg(dev, client, addr->l, L_BYTE(value), func);
+	if (addr->m)
+		ret |= i2c_write_reg(dev, client, addr->m, M_BYTE(value), func);
+	if (addr->h)
+		ret |= i2c_write_reg(dev, client, addr->h, H_BYTE(value), func);
+
+	return ret;
 }
 
 
 // ------------------------------------------------------------------------------------------------
 //  Helper Functions for debugging
 
-void vc_dump_reg_value(struct device *dev, int addr, int reg)
+void vc_dump_reg_value2(struct device *dev, int addr, int reg)
 {
 	int sval = 0; // short 2-byte value
 	if (addr & 1) { // odd addr
@@ -135,6 +164,37 @@ void vc_dump_hw_desc(struct device *dev, struct vc_desc *desc)
 	dev_info(dev, "[ MODES  ] [ NR=0x%04x ] [ BPM=0x%04x ]\n", desc->nr_modes, desc->bytes_per_mode);
 }
 
+
+// ------------------------------------------------------------------------------------------------
+//  Helper functions for internal data structures
+
+void vc_core_state_init(struct vc_ctrl *ctrl, struct vc_state *state)
+{
+	state->fmt = &ctrl->fmts[ctrl->default_fmt];
+	state->width = ctrl->o_width;
+	state->height = ctrl->o_height;	
+	state->streaming = 0;
+	state->flags = 0x00;
+}
+
+struct vc_framefmt *vc_core_find_framefmt(struct vc_ctrl *ctrl, __u32 code)
+{
+	struct device *dev = &ctrl->client_sen->dev; 
+	struct vc_framefmt *fmts = ctrl->fmts;
+
+	int i;
+
+	for (i = 0; fmts[i].code != 0; i++) {
+		struct vc_framefmt *fmt = &fmts[i];
+		dev_dbg(dev, "%s(): Checking format (code: 0x%04x)", __FUNCTION__, fmt->code);
+		if(fmt->code == code) {
+			return fmt;
+		}
+	}
+	return NULL;
+}
+
+
 // ------------------------------------------------------------------------------------------------
 //  Helper Functions for the VC MIPI Controller Module
 
@@ -147,14 +207,15 @@ struct i2c_client *vc_mod_get_client(struct i2c_adapter *adapter, __u8 addr)
 	return i2c_new_probed_device(adapter, &info, addr_list, NULL);
 }
 
-int vc_mod_set_power(struct i2c_client *client, int on)
+int vc_mod_set_power(struct vc_ctrl *ctrl, int on)
 {
-	struct device *dev = &client->dev;
+	struct i2c_client *client_mod = ctrl->client_mod;
+	struct device *dev = &client_mod->dev;
 	int ret;
 
 	dev_dbg(dev, "%s(): Set module power: %s\n", __FUNCTION__, on ? "up" : "down");
 
-	ret = i2c_write_reg(client, MOD_REG_RESET, on ? REG_RESET_PWR_UP : REG_RESET_PWR_DOWN);
+	ret = i2c_write_reg(dev, client_mod, MOD_REG_RESET, on ? REG_RESET_PWR_UP : REG_RESET_PWR_DOWN, __FUNCTION__);
 	if (ret)
 		dev_err(dev, "%s(): Unable to power %s the module (error: %d)\n", __FUNCTION__,
 			(on == REG_RESET_PWR_UP) ? "up" : "down", ret);
@@ -176,28 +237,28 @@ int vc_mod_get_status(struct i2c_client *client)
 	return ret;
 }
 
-int vc_mod_set_ext_trig(struct i2c_client *client, int enable)
+int vc_mod_set_trigger_in(struct i2c_client *client, int enable)
 {
 	struct device *dev = &client->dev;
 	int ret;
 
 	dev_dbg(dev, "%s(): Set external trigger: %s\n", __FUNCTION__, enable ? "on" : "off");
 
-	ret = i2c_write_reg(client, MOD_REG_EXTTRIG, enable);
+	ret = i2c_write_reg(dev, client, MOD_REG_EXTTRIG, enable, __FUNCTION__);
 	if (ret)
 		dev_err(dev, "%s(): Unable to set external trigger (error: %d)\n", __FUNCTION__, ret);
 
 	return ret;
 }
 
-int vc_mod_set_flash_output(struct i2c_client *client, int enable)
+int vc_mod_set_flash_out(struct i2c_client *client, int enable)
 {
 	struct device *dev = &client->dev;
 	int ret;
 
 	dev_dbg(dev, "%s(): Set flash output: %s\n", __FUNCTION__, enable ? "on" : "off");
 
-	ret = i2c_write_reg(client, MOD_REG_IOCTRL, enable);
+	ret = i2c_write_reg(dev, client, MOD_REG_IOCTRL, enable, __FUNCTION__);
 	if (ret)
 		dev_err(dev, "%s(): Unable to set flash output (error: %d)\n", __FUNCTION__, ret);
 
@@ -228,38 +289,9 @@ int vc_mod_wait_until_module_is_ready(struct i2c_client *client)
 	return 0;
 }
 
-int vc_mod_set_mode(struct i2c_client *client, int mode)
+int vc_mod_setup(struct vc_ctrl *ctrl, int mod_i2c_addr, struct vc_desc *desc)
 {
-	struct device *dev = &client->dev;
-	int ret;
-
-	dev_dbg(dev, "%s(): Set module mode: 0x%02x\n", __FUNCTION__, mode);
-
-	ret = i2c_write_reg(client, MOD_REG_MODE, mode);
-	if (ret)
-		dev_err(dev, "%s(): Unable to set module mode (error: %d)\n", __FUNCTION__, ret);
-
-	return ret;
-}
-
-int vc_mod_reset_module(struct i2c_client *client, int mode)
-{
-	struct device *dev = &client->dev;
-	int ret;
-
-	dev_dbg(dev, "%s(): Reset the module!\n", __FUNCTION__);
-
-	// TODO: Check if it really necessary to set mode in power down state.
-	ret = vc_mod_set_power(client, 0);
-	ret |= vc_mod_set_mode(client, mode);
-	ret |= vc_mod_set_power(client, 1);
-	ret |= vc_mod_wait_until_module_is_ready(client);
-
-	return ret;
-}
-
-struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, struct vc_desc *desc)
-{
+	struct i2c_client *client_sen = ctrl->client_sen;
 	struct i2c_adapter *adapter = client_sen->adapter;
 	struct device *dev_sen = &client_sen->dev;
 	struct i2c_client *client_mod;
@@ -273,10 +305,10 @@ struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, st
 		return 0;
 	}
 
-	client_mod = vc_mod_get_client(adapter, addr_mod);
+	client_mod = vc_mod_get_client(adapter, mod_i2c_addr);
 	if (client_mod == 0) {
-		dev_err(dev_sen, "%s(): Unable to get module I2C client for address 0x%02x\n", __FUNCTION__, addr_mod);
-		return 0;
+		dev_err(dev_sen, "%s(): Unable to get module I2C client for address 0x%02x\n", __FUNCTION__, mod_i2c_addr);
+		return -EIO;
 	}
 
 	dev_mod = &client_mod->dev;
@@ -284,17 +316,19 @@ struct i2c_client *vc_mod_setup(struct i2c_client *client_sen, __u8 addr_mod, st
 		reg = i2c_read_reg(client_mod, addr + 0x1000);
 		if (reg < 0) {
 			i2c_unregister_device(client_mod);
-			return 0;
+			return -EIO;
 		}
 		*((char *)(desc) + addr) = (char)reg;
 
-		//vc_dump_reg_value(dev, addr, reg);
+		//vc_dump_reg_value2(dev, addr, reg);
 	}
 
 	vc_dump_hw_desc(dev_mod, desc);
+	ctrl->client_mod = client_mod;
+	ctrl->mod_i2c_addr = mod_i2c_addr;
 
 	dev_info(dev_mod, "VC MIPI Sensor succesfully initialized.");
-	return client_mod;
+	return 0;
 }
 
 int vc_mod_is_color_sensor(struct vc_desc *desc)
@@ -308,17 +342,6 @@ int vc_mod_is_color_sensor(struct vc_desc *desc)
 	return 0;
 }
 
-void vc_mod_state_init(struct vc_ctrl *ctrl, struct vc_state *state)
-{
-	state->fmt = &ctrl->fmts[ctrl->default_fmt];
-	state->width = ctrl->o_width;
-	state->height = ctrl->o_height;
-	state->mode = ctrl->default_mode;
-	state->flash_output = 0;
-	state->ext_trig = 0;	// 0=free run, 1=ext. trigger, 2=trigger self test
-	state->streaming = 0;
-}
-
 int vc_mod_set_exposure(struct i2c_client *client, __u32 value, __u32 sen_clk)
 {
 	struct device *dev = &client->dev;
@@ -328,12 +351,87 @@ int vc_mod_set_exposure(struct i2c_client *client, __u32 value, __u32 sen_clk)
 
 	dev_dbg(dev, "%s(): Set module exposure = 0x%08x (%u)\n", __FUNCTION__, exposure, exposure);
 
-
-	ret  = i2c_write_reg(client, MOD_REG_EXPO_L, L_BYTE(exposure));
-	ret |= i2c_write_reg(client, MOD_REG_EXPO_M, M_BYTE(exposure));
-	ret |= i2c_write_reg(client, MOD_REG_EXPO_H, H_BYTE(exposure));
-	ret |= i2c_write_reg(client, MOD_REG_EXPO_U, U_BYTE(exposure));
+	ret  = i2c_write_reg(dev, client, MOD_REG_EXPO_L, L_BYTE(exposure), __FUNCTION__);
+	ret |= i2c_write_reg(dev, client, MOD_REG_EXPO_M, M_BYTE(exposure), __FUNCTION__);
+	ret |= i2c_write_reg(dev, client, MOD_REG_EXPO_H, H_BYTE(exposure), __FUNCTION__);
+	ret |= i2c_write_reg(dev, client, MOD_REG_EXPO_U, U_BYTE(exposure), __FUNCTION__);
 	
+	return ret;
+}
+
+struct vc_mode *vc_mod_find_mode(struct device *dev, struct vc_mode *modes, __u32 code, __u8 flags)
+{
+	__u8 mode_flags = flags & MASK_FIND_MODE;
+	int i;
+
+	for (i = 0; modes[i].code != 0; i++) {
+		struct vc_mode *mode = &modes[i];
+		dev_dbg(dev, "%s(): Checking mode (code: 0x%04x, flags: 0x%02x, value: 0x%02x)", __FUNCTION__, 
+			mode->code, mode->flags, mode->value);
+		if(mode->code == code && mode->flags == mode_flags) {
+			return mode;
+		}
+	}
+	return NULL;
+}
+
+int vc_mod_write_mode(struct i2c_client *client, int mode)
+{
+	struct device *dev = &client->dev;
+	int ret;
+
+	dev_dbg(dev, "%s(): Write module mode: 0x%02x\n", __FUNCTION__, mode);
+
+	ret = i2c_write_reg(dev, client, MOD_REG_MODE, mode, __FUNCTION__);
+	if (ret)
+		dev_err(dev, "%s(): Unable to write module mode: 0x%02x (error: %d)\n", __FUNCTION__, mode, ret);
+
+	return ret;
+}
+
+int vc_mod_reset_module(struct vc_ctrl *ctrl, int mode)
+{
+	struct i2c_client *client = ctrl->client_mod;
+	struct device *dev = &client->dev;
+	int ret;
+
+	dev_dbg(dev, "%s(): Reset the module!\n", __FUNCTION__);
+
+	// TODO: Check if it really necessary to set mode in power down state.
+	ret = vc_mod_set_power(ctrl, 0);
+	ret |= vc_mod_write_mode(client, mode);
+	ret |= vc_mod_set_power(ctrl, 1);
+	ret |= vc_mod_wait_until_module_is_ready(client);
+
+	return ret;
+}
+
+int vc_mod_set_mode(struct vc_ctrl *ctrl, struct vc_state *state)
+{
+	struct i2c_client *client_mod = ctrl->client_mod;
+	struct device *dev = &client_mod->dev;
+	struct vc_mode *mode;
+	__u8 flags = 0;
+	int ret = 0;
+	
+	flags = ctrl->flags & (state->flags | MASK_MODE_LANES);
+
+	dev_dbg(dev, "%s(): Set module mode: (code: 0x%04x, flags: 0x%02x)\n", __FUNCTION__, state->fmt->code, flags);
+
+	mode = vc_mod_find_mode(dev, ctrl->modes, state->fmt->code, flags);
+	if (mode == NULL) {
+		mode = &ctrl->modes[ctrl->default_mode];
+		dev_err(dev, "%s(): Mode (code: 0x%04x, flags: 0x%02x) not supported! (Set default mode (code: 0x%04x, flags: 0x%02x, value: 0x%02x))\n", 
+			__FUNCTION__, state->fmt->code, flags, mode->code, mode->flags, mode->value);
+	}
+
+	ret  = vc_mod_reset_module(ctrl, mode->value);
+	if (ret) {
+		dev_err(dev, "%s(): Unable to set mode: (code: 0x%04x, flags: 0x%02x, value: 0x%02x) (error=%d)\n", __func__, 
+			mode->code, mode->flags, mode->value, ret);
+		return ret;
+	}
+
 	return ret;
 }
 
@@ -341,22 +439,61 @@ int vc_mod_set_exposure(struct i2c_client *client, __u32 value, __u32 sen_clk)
 // ------------------------------------------------------------------------------------------------
 //  Helper Functions for the VC MIPI Sensors
 
+int vc_sen_write_mode(struct vc_ctrl *ctrl, int mode) 
+{
+	struct i2c_client *client = ctrl->client_sen;
+	struct device *dev = &client->dev;
+	__u8 value;
+	int ret = 0;
+
+	dev_dbg(dev, "%s(): Write sensor mode: %s\n", __FUNCTION__, (mode == SEN_MODE_STANDBY)? "standby" : "operating");
+
+	if(mode == SEN_MODE_STANDBY) {
+		value = SEN_MODE_STANDBY;
+		if(ctrl->addr.sen.mode.l) {
+			ret = i2c_write_reg(dev, client, ctrl->addr.sen.mode.l, value, __FUNCTION__);
+		}
+		if(ctrl->addr.sen.mode.m) {
+			ret |= i2c_write_reg(dev, client, ctrl->addr.sen.mode.m, value, __FUNCTION__);
+		}
+	} else {
+		value = SEN_MODE_OPERATING;
+		if(ctrl->addr.sen.mode.m) {
+			ret |= i2c_write_reg(dev, client, ctrl->addr.sen.mode.m, value, __FUNCTION__);
+		}
+		if(ctrl->addr.sen.mode.l) {
+			ret = i2c_write_reg(dev, client, ctrl->addr.sen.mode.l, value, __FUNCTION__);
+		}
+	}
+	if (ret) 
+		dev_err(dev, "%s(): Couldn't write sensor mode: 0x%02x (error=%d)\n", __FUNCTION__, mode, ret);
+
+	return ret;
+}
+
+int vc_sen_set_roi(struct vc_ctrl *ctrl, int width, int height)
+{
+	struct i2c_client *client = ctrl->client_sen;
+	struct device *dev = &client->dev;
+	int ret;
+
+	dev_dbg(dev, "%s(): Set sensor roi: (width: %u, height: %u)\n", __FUNCTION__, width, height);
+
+	ret  = vc_sen_write_mode(ctrl, SEN_MODE_STANDBY);
+	ret |= i2c_write_reg2(dev, client, &ctrl->addr.sen.o_width, width, __FUNCTION__);
+	ret |= i2c_write_reg2(dev, client, &ctrl->addr.sen.o_height, height, __FUNCTION__);
+	ret |= vc_sen_write_mode(ctrl, SEN_MODE_OPERATING);
+	if (ret) 
+		dev_err(dev, "%s(): Couldn't set sensor roi: (width: %u, height: %u) (error=%d)\n", __FUNCTION__, width, height, ret);
+
+	return ret;
+}
+
 __u32 vc_sen_read_vmax(struct vc_ctrl *ctrl)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
-	int reg;
-	__u32 vmax = 0;
-
-	reg = i2c_read_reg(client, ctrl->sen_reg_vmax_h);
-	if (reg)
-		vmax = reg;
-	reg = i2c_read_reg(client, ctrl->sen_reg_vmax_m);
-	if (reg)
-		vmax = (vmax << 8) | reg;
-	reg = i2c_read_reg(client, ctrl->sen_reg_vmax_l);
-	if (reg)
-		vmax = (vmax << 8) | reg;
+	__u32 vmax = i2c_read_reg3(dev, client, &ctrl->addr.sen.vmax);
 
 	dev_dbg(dev, "%s(): Read sensor VMAX: 0x%08x (%d)\n", __FUNCTION__, vmax, vmax);
 
@@ -367,67 +504,106 @@ int vc_sen_write_vmax(struct vc_ctrl *ctrl, __u32 vmax)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
-	int ret;
 
 	dev_dbg(dev, "%s(): Write sensor VMAX: 0x%08x (%d)\n", __FUNCTION__, vmax, vmax);
 
-	if (ctrl->sen_reg_vmax_l) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_vmax_l, L_BYTE(vmax));
-		ret = i2c_write_reg(client, ctrl->sen_reg_vmax_l, L_BYTE(vmax));
-	}
-	if (ctrl->sen_reg_vmax_m) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_vmax_m, M_BYTE(vmax));
-		ret |= i2c_write_reg(client, ctrl->sen_reg_vmax_m, M_BYTE(vmax));
-	}
-	if (ctrl->sen_reg_vmax_h) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_vmax_h, H_BYTE(vmax));
-		ret |= i2c_write_reg(client, ctrl->sen_reg_vmax_h, H_BYTE(vmax));
-	}
-	
-	return ret;
+	return i2c_write_reg3(dev, client, &ctrl->addr.sen.vmax, vmax, __FUNCTION__);
 }
 
 int vc_sen_write_exposure(struct vc_ctrl *ctrl, __u32 exposure)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
-	int ret;
 
 	dev_dbg(dev, "%s(): Write sensor exposure: 0x%08x (%d)\n", __FUNCTION__, exposure, exposure);
 
-	if (ctrl->sen_reg_expo_l) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_expo_l, L_BYTE(exposure));
-		ret = i2c_write_reg(client, ctrl->sen_reg_expo_l, L_BYTE(exposure));
-	}
-	if (ctrl->sen_reg_expo_m) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_expo_m, M_BYTE(exposure));
-		ret |= i2c_write_reg(client, ctrl->sen_reg_expo_m, M_BYTE(exposure));
-	}
-	if (ctrl->sen_reg_expo_h) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_expo_h, H_BYTE(exposure));
-		ret |= i2c_write_reg(client, ctrl->sen_reg_expo_h, H_BYTE(exposure));
-	}
+	return i2c_write_reg3(dev, client, &ctrl->addr.sen.expo, exposure, __FUNCTION__);
+}
+
+int vc_sen_set_gain(struct vc_ctrl *ctrl, int value)
+{
+	struct i2c_client *client = ctrl->client_sen;
+	struct device *dev = &client->dev;
+	int ret = 0;
+
+	dev_dbg(dev, "%s(): Set sensor gain: %u\n", __FUNCTION__, value);
+
+	ret = i2c_write_reg2(dev, client, &ctrl->addr.sen.gain, value, __FUNCTION__);;
+	if (ret)
+		dev_err(dev, "%s(): Couldn't set 'Gain' (error=%d)\n", __FUNCTION__, ret);
 
 	return ret;
 }
 
-int vc_sen_set_exposure(struct vc_ctrl *ctrl, int value)
+int vc_sen_start_stream(struct vc_ctrl *ctrl, struct vc_state *state)
 {
-	struct i2c_client *client = ctrl->client_sen;
-	struct device *dev = &client->dev;
+	struct i2c_client *client_sen = ctrl->client_sen;
+	struct i2c_client *client_mod = ctrl->client_mod;
+	struct device *dev = &client_sen->dev;
+	int ret = 0;
+
+	dev_dbg(dev, "%s(): Start streaming\n", __FUNCTION__);
+
+	if(ctrl->flags & MASK_IO_ENABLED) {
+		ret  = vc_mod_set_trigger_in(client_mod, REG_TRIGGER_IN_DISABLE);
+		ret |= vc_mod_set_flash_out(client_mod, (state->flags & FLAG_FLASH_OUT)?1:0);
+	}
+
+	// Start sensor streaming
+	ret |= vc_sen_write_mode(ctrl, SEN_MODE_OPERATING);
+	if (ret)
+		dev_err(dev, "%s(): Unable to start streaming (error=%d)\n", __FUNCTION__, ret);
+
+	return ret;
+}
+
+int vc_sen_stop_stream(struct vc_ctrl *ctrl, struct vc_state *state)
+{
+	struct i2c_client *client_sen = ctrl->client_sen;
+	struct i2c_client *client_mod = ctrl->client_mod;
+	struct device *dev = &client_sen->dev;
+	int ret = 0;
+
+	dev_dbg(dev, "%s(): Stop streaming\n", __FUNCTION__);
+
+	if (ctrl->flags & MASK_IO_ENABLED) {
+		ret |= vc_mod_set_trigger_in(client_mod, REG_TRIGGER_IN_DISABLE);
+		// ret |= vc_mod_set_flash_out(client_mod, REG_IOCTRL_DISABLE);
+	}
+
+	// Stop sensor streaming
+	ret |= vc_sen_write_mode(ctrl, SEN_MODE_STANDBY);
+	if (ret)
+		dev_err(dev, "%s(): Unable to stop streaming (error=%d)\n", __FUNCTION__, ret);
+
+	return ret;
+}
+
+
+// ------------------------------------------------------------------------------------------------
+
+int vc_sen_set_exposure_dirty(struct vc_ctrl *ctrl, struct vc_state *state, int value)
+{
+	struct i2c_client *client_sen = ctrl->client_sen;
+	struct i2c_client *client_mod = ctrl->client_mod;
+	struct device *dev = &client_sen->dev;
 	__u32 exposure = 0;
 	__u32 vmax = 0;
 	int ret = 0;
 
+	if (state->flags & FLAG_TRIGGER_IN) {
+		return vc_mod_set_exposure(client_mod, value, ctrl->sen_clk);
+	}
+
 	dev_dbg(dev, "%s(): Set sensor exposure: %u us\n", __FUNCTION__, value);
 	dev_dbg(dev, "%s(): Checking Limits Min1: %u, Min2: %u, Max: %u us\n", __FUNCTION__,
-		ctrl->expo_time_min1, ctrl->expo_time_min2, ctrl->expo_time_max);
+		ctrl->set.exposure.min, ctrl->expo_time_min2, ctrl->set.exposure.max);
 
 	// TODO: It is assumed, that the exposure value is valid => remove clamping.
-	if (value < ctrl->expo_time_min1)
-		value = ctrl->expo_time_min1;
-	if (value > ctrl->expo_time_max)
-		value = ctrl->expo_time_max;
+	if (value < ctrl->set.exposure.min)
+		value = ctrl->set.exposure.min;
+	if (value > ctrl->set.exposure.max)
+		value = ctrl->set.exposure.max;
 
 	if (value < ctrl->expo_time_min2) {
 		dev_dbg(dev, "%s(): Set exposure by method 1 (%u < Min2 %u)\n", __FUNCTION__, value, ctrl->expo_time_min2);
@@ -494,88 +670,6 @@ int vc_sen_set_exposure(struct vc_ctrl *ctrl, int value)
 		ret |= vc_sen_write_exposure(ctrl, exposure);
 		break;
 	}
-
-	return ret;
-}
-
-int vc_sen_set_gain(struct vc_ctrl *ctrl, int value)
-{
-	struct i2c_client *client = ctrl->client_sen;
-	struct device *dev = &client->dev;
-	int ret = 0;
-
-	dev_dbg(dev, "%s(): Set sensor gain: %u\n", __FUNCTION__, value);
-
-	if (ctrl->sen_reg_gain_l) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_gain_l, L_BYTE(value));
-		ret  = i2c_write_reg(client, ctrl->sen_reg_gain_l, L_BYTE(value));
-	}
-	if (ctrl->sen_reg_gain_m) {
-		dev_dbg(dev, "%s(): Address: 0x%04x <= Value: 0x%02x\n", __FUNCTION__, ctrl->sen_reg_gain_m, M_BYTE(value));
-		ret |= i2c_write_reg(client, ctrl->sen_reg_gain_m, M_BYTE(value));
-	}
-	if (ret)
-		dev_err(dev, "%s(): Couldn't set 'Gain' (error=%d)\n", __FUNCTION__, ret);
-
-	return ret;
-}
-
-int vc_sen_start_stream(struct vc_ctrl *ctrl, struct vc_state *state)
-{
-	struct i2c_client *client_sen = ctrl->client_sen;
-	struct i2c_client *client_mod = ctrl->client_mod;
-	struct device *dev = &client_sen->dev;
-	int ret = 0;
-
-	dev_dbg(dev, "%s(): Start streaming\n", __FUNCTION__);
-
-	if(ctrl->io_control == 1) {
-		ret = vc_mod_set_ext_trig(client_mod, REG_EXTTRIG_DISABLE);
-		ret |= vc_mod_set_flash_output(client_mod, state->flash_output);
-	}
-
-	// Start sensor streaming
-	ret = vc_sen_write_table(client_sen, ctrl->start_table);
-	if (ret)
-		dev_err(dev, "%s(): Unable to start streaming (error=%d)\n", __FUNCTION__, ret);
-
-	return ret;
-}
-
-int vc_sen_stop_stream(struct vc_ctrl *ctrl, struct vc_state *state)
-{
-	struct i2c_client *client_sen = ctrl->client_sen;
-	struct i2c_client *client_mod = ctrl->client_mod;
-	struct device *dev = &client_sen->dev;
-	int ret = 0;
-
-	dev_dbg(dev, "%s(): Stop streaming\n", __FUNCTION__);
-
-	// ********************************************************************
-	// TODO: Check if it really the "best" way to stop streaming by power down the sensor :)
-
-	// ret = vc_mod_set_power(ctrl->client_mod, 0);
-	// if (ret)
-	// 	return ret;
-
-	// mdelay(200);
-	// vc_mod_get_status(client_mod); // Read status just for debugging
-
-	// ret |= vc_mod_reset_module(client_mod, state->mode);
-	// ********************************************************************
-
-	if (ctrl->io_control == 1) {
-		ret |= vc_mod_set_ext_trig(client_mod, REG_EXTTRIG_DISABLE);
-		ret |= vc_mod_set_flash_output(client_mod, REG_IOCTRL_DISABLE);
-	}
-	if (state->ext_trig) {
-	        ret |= vc_mod_set_exposure(client_mod, 0, 0);
-	}
-
-	// Stop sensor streaming
-	ret |= vc_sen_write_table(client_sen, ctrl->stop_table);
-	if (ret)
-		dev_err(dev, "%s(): Unable to stop streaming (error=%d)\n", __FUNCTION__, ret);
 
 	return ret;
 }

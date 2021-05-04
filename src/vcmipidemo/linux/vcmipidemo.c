@@ -883,8 +883,8 @@ int  sensor_open(char *dev_video_device, VCMipiSenCfg *sen, unsigned int qbufCou
 	// Set Pixelformat, Width and Height
 	{
 		struct v4l2_format format;
-		// format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_SRGGB10;
-		format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_GREY;
+		format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_SRGGB10;
+		// format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_GREY;
 		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 		format.fmt.pix.width = 1920;
 		format.fmt.pix.height = 1080;
