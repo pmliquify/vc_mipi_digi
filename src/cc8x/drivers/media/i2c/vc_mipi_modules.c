@@ -81,20 +81,20 @@ void vc_init_imx226_ctrl(struct vc_ctrl *ctrl, struct vc_desc* desc)
 	ctrl->o_width 			= 3840;
 	ctrl->o_height 			= 3040;
 
-	ctrl->addr.sen.mode.l 		= 0x7000;		// Standby register: 0=Operating, 1=Standby
-	ctrl->addr.sen.mode.m 		= 0;
-	ctrl->addr.sen.vmax.l 		= 0x7004;
-	ctrl->addr.sen.vmax.m 		= 0x7005;
-	ctrl->addr.sen.vmax.h 		= 0x7006;	
-	ctrl->addr.sen.expo.l 		= 0x000B;
-	ctrl->addr.sen.expo.m 		= 0x000C;
-	ctrl->addr.sen.expo.h 		= 0;
-	ctrl->addr.sen.gain.l 		= 0x0009;
-	ctrl->addr.sen.gain.m 		= 0x000A;
-	ctrl->addr.sen.o_width.l	= 0x6015;
-	ctrl->addr.sen.o_width.m	= 0x6016;
-	ctrl->addr.sen.o_height.l	= 0x6010;
-	ctrl->addr.sen.o_height.m	= 0x6011;
+	ctrl->csr.sen.mode.l 		= 0x7000;		// Standby register: 0=Operating, 1=Standby
+	ctrl->csr.sen.mode.m 		= 0;
+	ctrl->csr.sen.vmax.l 		= 0x7004;
+	ctrl->csr.sen.vmax.m 		= 0x7005;
+	ctrl->csr.sen.vmax.h 		= 0x7006;	
+	ctrl->csr.sen.expo.l 		= 0x000B;
+	ctrl->csr.sen.expo.m 		= 0x000C;
+	ctrl->csr.sen.expo.h 		= 0;
+	ctrl->csr.sen.gain.l 		= 0x0009;
+	ctrl->csr.sen.gain.m 		= 0x000A;
+	ctrl->csr.sen.o_width.l		= 0x6015;
+	ctrl->csr.sen.o_width.m		= 0x6016;
+	ctrl->csr.sen.o_height.l	= 0x6010;
+	ctrl->csr.sen.o_height.m	= 0x6011;
 
 	ctrl->sen_clk			= 54000000; 		// sen_clk default=54Mhz, imx183=72Mhz
 	ctrl->expo_time_min2 		= 74480;
@@ -159,20 +159,20 @@ void vc_init_imx327_ctrl(struct vc_ctrl *ctrl, struct vc_desc* desc)
 	ctrl->o_width 			= 1920;
 	ctrl->o_height 			= 1080;
 
-	ctrl->addr.sen.mode.l 		= 0x3000;			// Standby register: 0=Operating, 1=Standby
-	ctrl->addr.sen.mode.m 		= 0x3002;
-	ctrl->addr.sen.vmax.l 		= 0x3018;
-	ctrl->addr.sen.vmax.m 		= 0x3019;
-	ctrl->addr.sen.vmax.h 		= 0x301A;	
-	ctrl->addr.sen.expo.l 		= 0x3020;
-	ctrl->addr.sen.expo.m 		= 0x3021;
-	ctrl->addr.sen.expo.h 		= 0x3022;
-	ctrl->addr.sen.gain.l 		= 0x3014;
-	ctrl->addr.sen.gain.m 		= 0;
-	ctrl->addr.sen.o_width.l	= 0x3472;
-	ctrl->addr.sen.o_width.m	= 0x3473;
-	ctrl->addr.sen.o_height.l	= 0x3418;
-	ctrl->addr.sen.o_height.m	= 0x3419;
+	ctrl->csr.sen.mode.l 		= 0x3000;			// Standby register: 0=Operating, 1=Standby
+	ctrl->csr.sen.mode.m 		= 0x3002;
+	ctrl->csr.sen.vmax.l 		= 0x3018;
+	ctrl->csr.sen.vmax.m 		= 0x3019;
+	ctrl->csr.sen.vmax.h 		= 0x301A;	
+	ctrl->csr.sen.expo.l 		= 0x3020;
+	ctrl->csr.sen.expo.m 		= 0x3021;
+	ctrl->csr.sen.expo.h 		= 0x3022;
+	ctrl->csr.sen.gain.l 		= 0x3014;
+	ctrl->csr.sen.gain.m 		= 0;
+	ctrl->csr.sen.o_width.l		= 0x3472;
+	ctrl->csr.sen.o_width.m		= 0x3473;
+	ctrl->csr.sen.o_height.l	= 0x3418;
+	ctrl->csr.sen.o_height.m	= 0x3419;
 	
 	ctrl->sen_clk			= 54000000; 			// sen_clk default=54Mhz, imx183=72Mhz
 	ctrl->expo_time_min2 		= 38716;

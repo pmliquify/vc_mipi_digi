@@ -97,46 +97,46 @@ int i2c_write_reg(struct device *dev, struct i2c_client *client, const __u16 add
 	return ret == 1 ? 0 : -EIO;
 }
 
-int i2c_write_reg2(struct device *dev, struct i2c_client *client, struct vc_addr2 *addr, const __u16 value, const char* func)
+int i2c_write_reg2(struct device *dev, struct i2c_client *client, struct vc_csr2 *csr, const __u16 value, const char* func)
 {
 	int ret = 0;
 
-	if (addr->l)		
-		ret  = i2c_write_reg(dev, client, addr->l, L_BYTE(value), func);
-	if (addr->m)
-		ret |= i2c_write_reg(dev, client, addr->m, M_BYTE(value), func);
+	if (csr->l)		
+		ret  = i2c_write_reg(dev, client, csr->l, L_BYTE(value), func);
+	if (csr->m)
+		ret |= i2c_write_reg(dev, client, csr->m, M_BYTE(value), func);
 
 	return ret;
 }
 
-__u32 i2c_read_reg3(struct device *dev, struct i2c_client *client, struct vc_addr3 *addr)
+__u32 i2c_read_reg3(struct device *dev, struct i2c_client *client, struct vc_csr3 *csr)
 {
 	int reg = 0;
 	__u32 value = 0;
 
-	reg = i2c_read_reg(client, addr->l);
+	reg = i2c_read_reg(client, csr->l);
 	if (reg)
 		value = (value << 8) | reg;
-	reg = i2c_read_reg(client, addr->m);
+	reg = i2c_read_reg(client, csr->m);
 	if (reg)
 		value = (value << 8) | reg;
-	reg = i2c_read_reg(client, addr->h);
+	reg = i2c_read_reg(client, csr->h);
 	if (reg)
 		value = reg;
 
 	return value;
 }
 
-int i2c_write_reg3(struct device *dev, struct i2c_client *client, struct vc_addr3 *addr, const __u16 value, const char *func)
+int i2c_write_reg3(struct device *dev, struct i2c_client *client, struct vc_csr3 *csr, const __u16 value, const char *func)
 {
 	int ret = 0;
 
-	if (addr->l)
-		ret = i2c_write_reg(dev, client, addr->l, L_BYTE(value), func);
-	if (addr->m)
-		ret |= i2c_write_reg(dev, client, addr->m, M_BYTE(value), func);
-	if (addr->h)
-		ret |= i2c_write_reg(dev, client, addr->h, H_BYTE(value), func);
+	if (csr->l)
+		ret = i2c_write_reg(dev, client, csr->l, L_BYTE(value), func);
+	if (csr->m)
+		ret |= i2c_write_reg(dev, client, csr->m, M_BYTE(value), func);
+	if (csr->h)
+		ret |= i2c_write_reg(dev, client, csr->h, H_BYTE(value), func);
 
 	return ret;
 }
@@ -198,12 +198,12 @@ struct vc_framefmt *vc_core_find_framefmt(struct vc_ctrl *ctrl, __u32 code)
 // ------------------------------------------------------------------------------------------------
 //  Helper Functions for the VC MIPI Controller Module
 
-struct i2c_client *vc_mod_get_client(struct i2c_adapter *adapter, __u8 addr)
+struct i2c_client *vc_mod_get_client(struct i2c_adapter *adapter, __u8 i2c_addr)
 {
 	struct i2c_board_info info = {
-		I2C_BOARD_INFO("i2c", addr),
+		I2C_BOARD_INFO("i2c", i2c_addr),
 	};
-	unsigned short addr_list[2] = { addr, I2C_CLIENT_END };
+	unsigned short addr_list[2] = { i2c_addr, I2C_CLIENT_END };
 	return i2c_new_probed_device(adapter, &info, addr_list, NULL);
 }
 
@@ -450,19 +450,19 @@ int vc_sen_write_mode(struct vc_ctrl *ctrl, int mode)
 
 	if(mode == SEN_MODE_STANDBY) {
 		value = SEN_MODE_STANDBY;
-		if(ctrl->addr.sen.mode.l) {
-			ret = i2c_write_reg(dev, client, ctrl->addr.sen.mode.l, value, __FUNCTION__);
+		if(ctrl->csr.sen.mode.l) {
+			ret = i2c_write_reg(dev, client, ctrl->csr.sen.mode.l, value, __FUNCTION__);
 		}
-		if(ctrl->addr.sen.mode.m) {
-			ret |= i2c_write_reg(dev, client, ctrl->addr.sen.mode.m, value, __FUNCTION__);
+		if(ctrl->csr.sen.mode.m) {
+			ret |= i2c_write_reg(dev, client, ctrl->csr.sen.mode.m, value, __FUNCTION__);
 		}
 	} else {
 		value = SEN_MODE_OPERATING;
-		if(ctrl->addr.sen.mode.m) {
-			ret |= i2c_write_reg(dev, client, ctrl->addr.sen.mode.m, value, __FUNCTION__);
+		if(ctrl->csr.sen.mode.m) {
+			ret |= i2c_write_reg(dev, client, ctrl->csr.sen.mode.m, value, __FUNCTION__);
 		}
-		if(ctrl->addr.sen.mode.l) {
-			ret = i2c_write_reg(dev, client, ctrl->addr.sen.mode.l, value, __FUNCTION__);
+		if(ctrl->csr.sen.mode.l) {
+			ret = i2c_write_reg(dev, client, ctrl->csr.sen.mode.l, value, __FUNCTION__);
 		}
 	}
 	if (ret) 
@@ -480,8 +480,8 @@ int vc_sen_set_roi(struct vc_ctrl *ctrl, int width, int height)
 	dev_dbg(dev, "%s(): Set sensor roi: (width: %u, height: %u)\n", __FUNCTION__, width, height);
 
 	ret  = vc_sen_write_mode(ctrl, SEN_MODE_STANDBY);
-	ret |= i2c_write_reg2(dev, client, &ctrl->addr.sen.o_width, width, __FUNCTION__);
-	ret |= i2c_write_reg2(dev, client, &ctrl->addr.sen.o_height, height, __FUNCTION__);
+	ret |= i2c_write_reg2(dev, client, &ctrl->csr.sen.o_width, width, __FUNCTION__);
+	ret |= i2c_write_reg2(dev, client, &ctrl->csr.sen.o_height, height, __FUNCTION__);
 	ret |= vc_sen_write_mode(ctrl, SEN_MODE_OPERATING);
 	if (ret) 
 		dev_err(dev, "%s(): Couldn't set sensor roi: (width: %u, height: %u) (error=%d)\n", __FUNCTION__, width, height, ret);
@@ -493,7 +493,7 @@ __u32 vc_sen_read_vmax(struct vc_ctrl *ctrl)
 {
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
-	__u32 vmax = i2c_read_reg3(dev, client, &ctrl->addr.sen.vmax);
+	__u32 vmax = i2c_read_reg3(dev, client, &ctrl->csr.sen.vmax);
 
 	dev_dbg(dev, "%s(): Read sensor VMAX: 0x%08x (%d)\n", __FUNCTION__, vmax, vmax);
 
@@ -507,7 +507,7 @@ int vc_sen_write_vmax(struct vc_ctrl *ctrl, __u32 vmax)
 
 	dev_dbg(dev, "%s(): Write sensor VMAX: 0x%08x (%d)\n", __FUNCTION__, vmax, vmax);
 
-	return i2c_write_reg3(dev, client, &ctrl->addr.sen.vmax, vmax, __FUNCTION__);
+	return i2c_write_reg3(dev, client, &ctrl->csr.sen.vmax, vmax, __FUNCTION__);
 }
 
 int vc_sen_write_exposure(struct vc_ctrl *ctrl, __u32 exposure)
@@ -517,7 +517,7 @@ int vc_sen_write_exposure(struct vc_ctrl *ctrl, __u32 exposure)
 
 	dev_dbg(dev, "%s(): Write sensor exposure: 0x%08x (%d)\n", __FUNCTION__, exposure, exposure);
 
-	return i2c_write_reg3(dev, client, &ctrl->addr.sen.expo, exposure, __FUNCTION__);
+	return i2c_write_reg3(dev, client, &ctrl->csr.sen.expo, exposure, __FUNCTION__);
 }
 
 int vc_sen_set_gain(struct vc_ctrl *ctrl, int value)
@@ -528,7 +528,7 @@ int vc_sen_set_gain(struct vc_ctrl *ctrl, int value)
 
 	dev_dbg(dev, "%s(): Set sensor gain: %u\n", __FUNCTION__, value);
 
-	ret = i2c_write_reg2(dev, client, &ctrl->addr.sen.gain, value, __FUNCTION__);;
+	ret = i2c_write_reg2(dev, client, &ctrl->csr.sen.gain, value, __FUNCTION__);;
 	if (ret)
 		dev_err(dev, "%s(): Couldn't set 'Gain' (error=%d)\n", __FUNCTION__, ret);
 

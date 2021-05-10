@@ -20,4 +20,5 @@ IMAGE_FILE=ccimx8x-sbc-pro-installer.zip
 UUU_URL=https://github.com/NXPmicro/mfgtools/releases/download/uuu_1.4.72
 
 TARGET_NAME=ccimx8x-sbc-pro
-TARGET_SHELL="ssh root@$TARGET_NAME"
+TARGET_USER=root
+TARGET_SHELL="ssh $TARGET_USER@$TARGET_NAME"

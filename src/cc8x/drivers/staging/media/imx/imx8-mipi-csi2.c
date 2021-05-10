@@ -6,6 +6,8 @@
  *
  */
 
+// #define DEBUG
+
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/device.h>
@@ -515,11 +517,17 @@ static void mxc_mipi_csi2_disable(struct mxc_mipi_csi2_dev *csi2dev)
 
 static void mxc_mipi_csi2_csr_config(struct mxc_mipi_csi2_dev *csi2dev)
 {
+	// struct v4l2_mbus_framefmt *mf = &csi2dev->format;
 	u32 val;
 
+	// *** VC MIPI ********************************************************
 	/* format */
+	// switch(mf->code) {
+	// }
 	val = 0;
+	// val = CSI2SS_DATA_TYPE_RAW10;
 	writel(val, csi2dev->csr_regs + CSI2SS_DATA_TYPE);
+	// ********************************************************************
 
 	/* polarity */
 	val = readl(csi2dev->csr_regs + CSI2SS_PLM_CTRL);

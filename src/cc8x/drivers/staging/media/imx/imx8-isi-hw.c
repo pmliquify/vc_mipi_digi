@@ -57,7 +57,7 @@ void dump_isi_regs(struct mxc_isi_dev *mxc_isi)
 		{ 0x90, "CHNL_OUT_BUF2_ADDR_U" },
 		{ 0x94, "CHNL_OUT_BUF2_ADDR_V" },
 		{ 0x98, "CHNL_SCL_IMG_CFG" },
-		{ 0x9C, "CHNL_FLOW_CTRL" },
+		// { 0x9C, "CHNL_FLOW_CTRL" },
 	};
 	u32 i;
 
@@ -288,6 +288,7 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *mxc_isi,
 			     struct mxc_isi_frame *src_f,
 			     struct mxc_isi_frame *dst_f)
 {
+	struct device *dev = &mxc_isi->pdev->dev;
 	struct mxc_isi_fmt *src_fmt = src_f->fmt;
 	struct mxc_isi_fmt *dst_fmt = dst_f->fmt;
 	u32 val, csc = 0;
@@ -300,6 +301,8 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *mxc_isi,
 
 	/* set outbuf format */
 	val |= dst_fmt->color << CHNL_IMG_CTRL_FORMAT_OFFSET;
+	// *** VC MIPI ********************************************************
+	dev_dbg(dev, "%s(): dst_fmt->color: 0x%08x (%u)\n", __FUNCTION__, dst_fmt->color, dst_fmt->color);
 
 	mxc_isi->cscen = 1;
 

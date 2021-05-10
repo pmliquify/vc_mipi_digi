@@ -54,28 +54,28 @@ struct vc_mode {
 	__u8 value;
 };
 
-struct vc_addr2 {
+struct vc_csr2 {
 	__u32 l;
 	__u32 m;
 };
 
-struct vc_addr3 {
+struct vc_csr3 {
 	__u32 l;
 	__u32 m;
 	__u32 h;
 };
 
-struct vc_sen_addrs {
-	struct vc_addr2 mode;
-	struct vc_addr3 vmax;
-	struct vc_addr3 expo;
-	struct vc_addr2 gain;
-	struct vc_addr2 o_width;
-	struct vc_addr2 o_height;
+struct vc_sen_csr {
+	struct vc_csr2 mode;
+	struct vc_csr3 vmax;
+	struct vc_csr3 expo;
+	struct vc_csr2 gain;
+	struct vc_csr2 o_width;
+	struct vc_csr2 o_height;
 };
 
-struct vc_addrs {
-	struct vc_sen_addrs sen;
+struct vc_csr {
+	struct vc_sen_csr sen;
 };
 
 struct vc_ctrl {
@@ -93,8 +93,8 @@ struct vc_ctrl {
 	int default_fmt;
 	__u32 o_width;
 	__u32 o_height;
-	// Variable sensor programming
-	struct vc_addrs addr;
+	// Control and status register
+	struct vc_csr csr;
 	// Exposure
 	__u32 sen_clk;
 	__u32 expo_time_min2;

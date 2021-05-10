@@ -690,7 +690,7 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
 	unsigned long flags;
 
-	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_info(&isi_cap->pdev->dev, "%s\n", __func__);
 
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
@@ -1910,6 +1910,7 @@ static int mxc_isi_register_cap_device(struct mxc_isi_cap_dev *isi_cap,
 		goto err_ctrl_free;
 #ifndef CONFIG_VIDEO_ECAM
 	vdev->ctrl_handler = &isi_cap->ctrls.handler;
+	v4l2_dev->ctrl_handler = &isi_cap->ctrls.handler;
 #endif
 	v4l2_info(v4l2_dev, "Registered %s as /dev/%s\n",
 		  vdev->name, video_device_node_name(vdev));
