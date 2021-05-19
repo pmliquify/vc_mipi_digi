@@ -142,7 +142,7 @@ The system should start properly. *(There are some error messages that can be ig
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - e024 7022 6025 4022 4024 4022 f024 c022 d024 e021
         ...
         
-        # ./test/vcmipidemo -ax4       (shiftet 4 bits left)     v    v    v    v    v    v    v    v    v    v
+        # ./test/vcmipidemo -ax4      (shiftet 4 bits right)     v    v    v    v    v    v    v    v    v    v
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1502 4902 2502 4302 1002 4802 1902 5002 2302 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1a02 4602 2302 4502 2402 4202 1f02 4502 2402 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1e02 4402 1502 4902 1a02 4102 1b02 5702 1c02 
