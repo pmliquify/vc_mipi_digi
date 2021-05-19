@@ -135,14 +135,14 @@ The system should start properly. *(There are some error messages that can be ig
       ```
         $ ssh root@ccimx8x-sbc-pro
         
-        # ./test/vcmipidemo -ax
+        # ./test/vcmipidemo -ax                                 v    v    v    v    v    v    v    v    v    v
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 9024 5022 f025 0022 7024 a022 0025 4022 2025 b022 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4025 7021 b024 7022 1025 1022 9025 8022 2025 7022 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 0025 f021 8024 d022 2025 5022 e024 7022 6025 1022 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - e024 7022 6025 4022 4024 4022 f024 c022 d024 e021
         ...
         
-        # ./test/vcmipidemo -ax4
+        # ./test/vcmipidemo -ax4       (shiftet 4 bits left)     v    v    v    v    v    v    v    v    v    v
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1502 4902 2502 4302 1002 4802 1902 5002 2302 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1a02 4602 2302 4502 2402 4202 1f02 4502 2402 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1e02 4402 1502 4902 1a02 4102 1b02 5702 1c02 
