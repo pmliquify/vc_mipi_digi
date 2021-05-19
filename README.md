@@ -134,13 +134,20 @@ The system should start properly. *(There are some error messages that can be ig
       **Please note the option -ax4 to suppress ASCII output and option image information and the 4 bit shift correction** 
       ```
         $ ssh root@ccimx8x-sbc-pro
-        # ./test/vcmipidemo -ax4
-        img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - c090 f0b0 c080 00e0 5040 5030 f000 d0f0 70d0 4030 
-        img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - f060 b060 4070 5090 8050 f0a0 20b0 7030 10c0 6080 
-        img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - 3060 d0a0 d020 e060 1050 7010 d090 4090 2090 7020 
-        img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - a050 2010 0080 7080 b060 2010 a040 7020 9010 d050 
-        img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - f050 70c0 50a0 e0c0 3060 0070 2000 d010 c0b0 90c0 
+        
+        # ./test/vcmipidemo -ax
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 9024 5022 f025 0022 7024 a022 0025 4022 2025 b022 
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4025 7021 b024 7022 1025 1022 9025 8022 2025 7022 
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 0025 f021 8024 d022 2025 5022 e024 7022 6025 1022 
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - e024 7022 6025 4022 4024 4022 f024 c022 d024 e021
         ...
+        
+        # ./test/vcmipidemo -ax4
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1502 4902 2502 4302 1002 4802 1902 5002 2302 
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1a02 4602 2302 4502 2402 4202 1f02 4502 2402 
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1e02 4402 1502 4902 1a02 4102 1b02 5702 1c02 
+        img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1b02 4102 2302 4a02 1202 4202 1e02 4b02 2302
+        ...       
       ```
       On Windows you should see the live image stream.   
       
