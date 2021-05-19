@@ -91,7 +91,7 @@ if [[ $CMD == "target" ]]; then
         #ssh-copy-id -i ~/.ssh/id_rsa.pub $TARGET_USER@$TARGET_NAME
     
         TARGET_DIR=/home/$TARGET_USER/test
-        $TARGET_SHELL rm -R $TARGET_DIR
+        $TARGET_SHELL rm -Rf $TARGET_DIR
         $TARGET_SHELL mkdir -p $TARGET_DIR
         scp $WORKING_DIR/target/* $TARGET_USER@$TARGET_NAME:$TARGET_DIR
         # $TARGET_SHELL chmod +x $TARGET_DIR/*.sh

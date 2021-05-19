@@ -85,7 +85,7 @@ The system should start properly. *(There are some error messages that can be ig
 2. Build and install the vcmipidemo backend on the target.
    ```
      $ ./build.sh demo
-     $ ./test.sh
+     $ ./setup.sh target
    ```
 
 3. Login to the target and check if the driver was loaded properly. You should see something similar to the output in the second box.
@@ -117,6 +117,7 @@ The system should start properly. *(There are some error messages that can be ig
    
    2. Execute the python script **vcimgnetclient.py**. 
       * The window from the VCImgNetClient should show up. 
+      * Choose option _Interpete as RGB_
       * Click the **Receive Image** Button.
       * In the first terminal you should see that the client had connected to the server.
         ```
@@ -130,9 +131,10 @@ The system should start properly. *(There are some error messages that can be ig
       
    3. Open a second terminal, login and start the vcmipidemo to start the image stream. The application starts streaming 
       and should show some image information and the first few bytes from the image.
+      **Please note the option -ax4 to suppress ASCII output and option image information and the 4 bit shift correction** 
       ```
         $ ssh root@ccimx8x-sbc-pro
-        # ./test/vcmipidemo -a
+        # ./test/vcmipidemo -ax4
         img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - c090 f0b0 c080 00e0 5040 5030 f000 d0f0 70d0 4030 
         img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - f060 b060 4070 5090 8050 f0a0 20b0 7030 10c0 6080 
         img.org (fmt: GREY, dx: 1920, dy: 1080, pitch: 1920) - 3060 d0a0 d020 e060 1050 7010 d090 4090 2090 7020 
@@ -142,4 +144,4 @@ The system should start properly. *(There are some error messages that can be ig
       ```
       On Windows you should see the live image stream.   
       
-      ![vcmipidemo screenshot](https://raw.githubusercontent.com/pmliquify/vc_mipi_digi/main/docs/vcmipidemo_screenshot.png)
+      ![vcmipidemo screenshot](https://raw.githubusercontent.com/pmliquify/vc_mipi_digi/master/docs/vcmipidemo_screenshot.png)

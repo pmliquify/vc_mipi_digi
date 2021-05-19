@@ -19,7 +19,8 @@
                 "*.ipp": "c",
                 "delay.h": "c",
                 "v4l2-async.h": "c",
-                "v4l2-ctrls.h": "c"
+                "v4l2-ctrls.h": "c",
+                "device.h": "c"
         },
         "ctags.excludePatterns": [
                 "ccimx8x-sbc-pro",

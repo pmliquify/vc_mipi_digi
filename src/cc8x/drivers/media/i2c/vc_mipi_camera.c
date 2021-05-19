@@ -1,4 +1,4 @@
-#define DEBUG
+#include "vc_mipi_core.h"
 
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
@@ -19,9 +19,6 @@
 #include <media/v4l2-event.h>
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-subdev.h>
-
-#include "vc_mipi_core.h"
-
 
 struct vc_camera {
 	struct v4l2_subdev sd;

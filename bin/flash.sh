@@ -8,13 +8,13 @@ if [[ $1 == "a" || $1 == "k" ]]; then
         scp $KERNEL_SOURCE/arch/arm64/boot/Image.gz $TARGET_USER@$TARGET_NAME:/mnt/linux/Image.gz-ccimx8x-sbc-pro.bin
 
 fi
-if [[ $1 == "a" || $1 == "m" ]]; then
-        scp -r $BUILD_DIR/modules/* $TARGET_USER@$TARGET_NAME:/
+# if [[ $1 == "a" || $1 == "m" ]]; then
+#         scp -r $BUILD_DIR/modules/* $TARGET_USER@$TARGET_NAME:/
 
-        scp $BUILD_DIR/modules.tar.gz $TARGET_USER@$TARGET_NAME:/home/$TARGET_USER
-        $TARGET_SHELL tar -xzf modules.tar.gz -C /
-        $TARGET_SHELL rm modules.tar.gz
-fi
+#         scp $BUILD_DIR/modules.tar.gz $TARGET_USER@$TARGET_NAME:/home/$TARGET_USER
+#         $TARGET_SHELL tar -xzf modules.tar.gz -C /
+#         $TARGET_SHELL rm modules.tar.gz
+# fi
 if [[ $1 == "a" || $1 == "d" ]]; then
         scp $KERNEL_SOURCE/arch/arm64/boot/dts/digi/ccimx8x-sbc-pro.dtb $TARGET_USER@$TARGET_NAME:/mnt/linux/        
 fi

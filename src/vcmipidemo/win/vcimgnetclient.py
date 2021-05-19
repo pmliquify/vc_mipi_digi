@@ -128,8 +128,8 @@ class  Backend(object):
         y0       = 0
         dx       = 1920
         dy       = 1080
-        incrx    = 1
-        incry    = 1
+        incrx    = 2
+        incry    = 2
 
 
         def  __init__(self, backend):

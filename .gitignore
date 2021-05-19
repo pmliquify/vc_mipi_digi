@@ -4,6 +4,6 @@ tools/
 .DS_Store
 .vscode-ctags
 .vscode-ctags.next
-vcimgnetsrv
-vcmipidemo
-vctest
+target/vcimgnetsrv
+target/vcmipidemo
+target/vctest
