@@ -337,7 +337,7 @@ struct v4l2_ctrl_config ctrl_config_list[] = {
 	},
 };
 
-int vc_sd_init(struct v4l2_subdev *sd, struct i2c_client *client)4
+int vc_sd_init(struct v4l2_subdev *sd, struct i2c_client *client)
 {
 	struct device *dev = &client->dev;
 	struct v4l2_ctrl_handler *ctrl_hdl;

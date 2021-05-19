@@ -55,8 +55,7 @@ When we use the **$** sign it is meant that the command is executed on the host 
 
 4. Build the kernel image, kernel modules and device tree files.
    ```
-     $ ./build.sh k
-     $ ./build.sh d
+     $ ./build.sh
    ```
 
 5. Install a fresh BSP Image to the target
