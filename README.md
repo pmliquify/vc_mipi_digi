@@ -44,18 +44,19 @@ When we use the **$** sign it is meant that the command is executed on the host 
 2. Create a directory and clone the repository   
    ```
      $ cd <working_dir>
-     $ git clone https://github.com/pmliquify/vc_mipi_digi
+     $ git clone -b master https://github.com/pmliquify/vc_mipi_digi 
    ```
 
 3. Setup the toolchain and the kernel sources.
    ```
      $ cd vc_mipi_digi/bin
-     $ ./setup.sh
+     $ ./setup.sh host
    ```
 
 4. Build the kernel image, kernel modules and device tree files.
    ```
-     $ ./build.sh
+     $ ./build.sh k
+     $ ./build.sh d
    ```
 
 5. Install a fresh BSP Image to the target
