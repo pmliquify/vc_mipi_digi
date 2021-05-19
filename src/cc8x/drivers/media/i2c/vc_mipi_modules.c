@@ -2,6 +2,17 @@
 #include <linux/v4l2-mediabus.h>
 
 
+int vc_mod_is_color_sensor(struct vc_desc *desc)
+{
+	if (desc->sen_type) {
+		__u32 len = strnlen(desc->sen_type, 16);
+		if (len > 0 && len < 17) {
+			return *(desc->sen_type + len - 1) == 'C';
+		}
+	}
+	return 0;
+}
+
 // ------------------------------------------------------------------------------------------------
 //  Settings for 226/226C
 
@@ -37,7 +48,7 @@ static struct vc_mode imx226_color_modes[] = {
 	{ 0, 0, 0 }
 };
 
-static struct vc_framefmt imx226_mono_fmts[] = {
+static struct vc_fmt imx226_mono_fmts[] = {
 	{ MEDIA_BUS_FMT_Y8_1X8,       V4L2_COLORSPACE_SRGB },   /* 8-bit grayscale pixel format  : V4L2_PIX_FMT_GREY 'GREY'     */
 	{ MEDIA_BUS_FMT_Y10_1X10,     V4L2_COLORSPACE_SRGB },   /* 10-bit grayscale pixel format : V4L2_PIX_FMT_Y10  'Y10 '     */
 	{ MEDIA_BUS_FMT_Y12_1X12,     V4L2_COLORSPACE_SRGB },   /* 12-bit grayscale pixel format : V4L2_PIX_FMT_Y12  'Y12 '     */
@@ -46,7 +57,7 @@ static struct vc_framefmt imx226_mono_fmts[] = {
 	// use 8-bit 'RGGB' instead GREY format to save 8-bit frame(s) to raw file by v4l2-ctl
 };
 
-static struct vc_framefmt imx226_color_fmts[] = {
+static struct vc_fmt imx226_color_fmts[] = {
 	{ MEDIA_BUS_FMT_SRGGB8_1X8,   V4L2_COLORSPACE_SRGB },   /* 8-bit color pixel format      : V4L2_PIX_FMT_SRGGB8  'RGGB'  */
 	{ MEDIA_BUS_FMT_SRGGB10_1X10, V4L2_COLORSPACE_SRGB },   /* 10-bit color pixel format     : V4L2_PIX_FMT_SRGGB10 'RG10'  */
 	{ MEDIA_BUS_FMT_SRGGB12_1X12, V4L2_COLORSPACE_SRGB },   /* 12-bit color pixel format     : V4L2_PIX_FMT_SRGGB12 'RG12'  */
@@ -78,8 +89,8 @@ void vc_init_imx226_ctrl(struct vc_ctrl *ctrl, struct vc_desc* desc)
 	}
 	ctrl->default_mode		= 0;
 	ctrl->default_fmt		= 0;
-	ctrl->o_width 			= 3840;
-	ctrl->o_height 			= 3040;
+	ctrl->o_frame.width 		= 3840;
+	ctrl->o_frame.height		= 3040;
 
 	ctrl->csr.sen.mode.l 		= 0x7000;		// Standby register: 0=Operating, 1=Standby
 	ctrl->csr.sen.mode.m 		= 0;
@@ -121,12 +132,12 @@ static struct vc_mode imx327_color_modes[] = {
 	{ 0, 0, 0 }
 };
 
-static struct vc_framefmt imx327_mono_fmts[] = {
+static struct vc_fmt imx327_mono_fmts[] = {
 	{ MEDIA_BUS_FMT_Y10_1X10,     V4L2_COLORSPACE_SRGB },
 	{ 0, 0 }
 };
 
-static struct vc_framefmt imx327_color_fmts[] = {
+static struct vc_fmt imx327_color_fmts[] = {
 	{ MEDIA_BUS_FMT_SRGGB10_1X10, V4L2_COLORSPACE_SRGB },
 	{ 0, 0 }
 };
@@ -156,8 +167,8 @@ void vc_init_imx327_ctrl(struct vc_ctrl *ctrl, struct vc_desc* desc)
 	}
 	ctrl->default_mode		= 0;
 	ctrl->default_fmt		= 0;
-	ctrl->o_width 			= 1920;
-	ctrl->o_height 			= 1080;
+	ctrl->o_frame.width 		= 1920;
+	ctrl->o_frame.height		= 1080;
 
 	ctrl->csr.sen.mode.l 		= 0x3000;			// Standby register: 0=Operating, 1=Standby
 	ctrl->csr.sen.mode.m 		= 0x3002;

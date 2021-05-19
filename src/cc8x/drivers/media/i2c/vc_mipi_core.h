@@ -43,9 +43,14 @@ struct vc_settings {
 	struct vc_range gain;
 };
 
-struct vc_framefmt {
+struct vc_fmt {
 	__u32 code;
 	enum v4l2_colorspace colorspace;
+};
+
+struct vc_frame {
+	__u32 width;
+	__u32 height;
 };
 
 struct vc_mode {
@@ -89,10 +94,9 @@ struct vc_ctrl {
 	// Modes & Frame Formats
 	struct vc_mode *modes;
 	int default_mode;
-	struct vc_framefmt *fmts;
+	struct vc_fmt *fmts;
 	int default_fmt;
-	__u32 o_width;
-	__u32 o_height;
+	struct vc_frame o_frame;
 	// Control and status register
 	struct vc_csr csr;
 	// Exposure
@@ -107,9 +111,8 @@ struct vc_ctrl {
 
 struct vc_state {
 	// Modes & Frame Formats
-	struct vc_framefmt *fmt;
-	__u32 width;
-	__u32 height;
+	struct vc_fmt *fmt;
+	struct vc_frame frame;
 	// Features
 	__u8 flags;
 	// Status flags
@@ -117,23 +120,33 @@ struct vc_state {
 	int streaming;
 };
 
-// --- Helper functions for internal data structures
-void vc_core_state_init(struct vc_ctrl *ctrl, struct vc_state *state);
-struct vc_framefmt *vc_core_find_framefmt(struct vc_ctrl *ctrl, __u32 code);
+struct vc_cam {
+	struct vc_desc desc;
+	struct vc_ctrl ctrl;
+	struct vc_state state;
+};
+
+// --- Helper functions for internal data structures --------------------------
+struct vc_fmt *vc_core_find_format(struct vc_cam *cam, __u32 code);
+int vc_core_set_format(struct vc_cam *cam, __u32 code);
+__u32 vc_core_get_format(struct vc_cam *cam);
+int vc_core_set_frame(struct vc_cam *cam, __u32 width, __u32 height);
+struct vc_frame *vc_core_get_frame(struct vc_cam *cam);
+
+// --- Function to initialze the vc core --------------------------------------
+int vc_core_init(struct vc_cam *cam, struct i2c_client *client);
 
 // --- Functions for the VC MIPI Controller Module ----------------------------
-int vc_mod_setup(struct vc_ctrl *ctrl, int mod_i2c_addr, struct vc_desc *desc);
-int vc_mod_is_color_sensor(struct vc_desc *desc);
-int vc_mod_set_power(struct vc_ctrl *ctrl, int on);
-int vc_mod_set_mode(struct vc_ctrl *ctrl, struct vc_state *state);
+int vc_mod_set_power(struct vc_cam *cam, int on);
+int vc_mod_set_mode(struct vc_cam *cam);
 
 // --- Functions for the VC MIPI Sensors --------------------------------------
-int vc_sen_set_roi(struct vc_ctrl *ctrl, int width, int height);
-int vc_sen_set_gain(struct vc_ctrl *ctrl, int value);
-int vc_sen_start_stream(struct vc_ctrl *ctrl, struct vc_state *state);
-int vc_sen_stop_stream(struct vc_ctrl *ctrl, struct vc_state *state);
+int vc_sen_set_roi(struct vc_cam *cam, int width, int height);
+int vc_sen_set_gain(struct vc_cam *cam, int value);
+int vc_sen_start_stream(struct vc_cam *cam);
+int vc_sen_stop_stream(struct vc_cam *cam);
 
 // TODO: Cleaned up
-int vc_sen_set_exposure_dirty(struct vc_ctrl *ctrl, struct vc_state *state, int value);
+int vc_sen_set_exposure_dirty(struct vc_cam *cam, int value);
 
 #endif // _VC_MIPI_CORE_H

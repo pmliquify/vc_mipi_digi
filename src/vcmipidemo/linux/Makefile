@@ -12,10 +12,13 @@
 .PHONY: all
 
 
-all: vcimgnetsrv vcmipidemo
+all: vctest vcimgnetsrv vcmipidemo
 
 clean:
 	-rm vcimgnetsrv vcmipidemo
+
+vctest: vctest.c
+	$(CC) -ggdb -Wall -O3  -o vctest vctest.c
 
 vcimgnetsrv:  vcimgnetsrv.c vclib-excerpt.c
 	$(CC) -ggdb -Wall -O3  -o vcimgnetsrv vcimgnetsrv.c vclib-excerpt.c -lrt

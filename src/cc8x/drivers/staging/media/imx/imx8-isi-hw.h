@@ -7,7 +7,7 @@
 #ifndef __MXC_ISI_HW_H__
 #define __MXC_ISI_HW_H__
 
-#define DEBUG
+// #define DEBUG
 
 #include <linux/delay.h>
 #include <linux/types.h>

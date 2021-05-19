@@ -1,0 +1,39 @@
+{
+        "files.associations": {
+                "optional": "c",
+                "istream": "c",
+                "ostream": "c",
+                "ratio": "c",
+                "system_error": "c",
+                "array": "c",
+                "functional": "c",
+                "tuple": "c",
+                "type_traits": "c",
+                "utility": "c",
+                "variant": "c",
+                "future": "c",
+                "regex": "c",
+                "videodev2.h": "c",
+                "stdio.h": "c",
+                "fcntl.h": "c",
+                "*.ipp": "c",
+                "delay.h": "c",
+                "v4l2-async.h": "c",
+                "v4l2-ctrls.h": "c"
+        },
+        "ctags.excludePatterns": [
+                "ccimx8x-sbc-pro",
+                "dey-3.0",
+                "toolchain"
+        ],
+        "files.exclude": {
+                "**/ccimx8x-sbc-pro/**": true,
+                "**/dey-3.0/**": true,
+                "**/downloads/**": true,
+                "**/recovery/**": true,
+                "**/toolchain/**": true
+        },
+        "files.watcherExclude": {
+                "**/build/**": true
+        },
+}

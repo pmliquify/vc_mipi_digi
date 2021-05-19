@@ -49,6 +49,7 @@ fi
 if [[ $1 == "demo" ]]; then 
     cd $WORKING_DIR/src/vcmipidemo/linux
     make
-    mv vcmipidemo $WORKING_DIR/test
-    mv vcimgnetsrv $WORKING_DIR/test
+    mv vcmipidemo $WORKING_DIR/target
+    mv vcimgnetsrv $WORKING_DIR/target
+    mv vctest $WORKING_DIR/target
 fi

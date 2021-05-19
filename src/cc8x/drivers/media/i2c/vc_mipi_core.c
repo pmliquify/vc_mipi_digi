@@ -30,6 +30,8 @@
 #define REG_STATUS_ERROR        0x01   // reg1[7:0] = 0x01 internal error during initialization
 #define REG_TRIGGER_IN_ENABLE   0x01
 #define REG_TRIGGER_IN_DISABLE  0x00
+#define REG_FLASH_OUT_ENABLE    0x01
+#define REG_FLASH_OUT_DISABLE   0x00
 
 #define SEN_MODE_STANDBY        0x01
 #define SEN_MODE_OPERATING      0x00
@@ -168,30 +170,95 @@ void vc_dump_hw_desc(struct device *dev, struct vc_desc *desc)
 // ------------------------------------------------------------------------------------------------
 //  Helper functions for internal data structures
 
-void vc_core_state_init(struct vc_ctrl *ctrl, struct vc_state *state)
+struct vc_fmt *vc_core_find_format(struct vc_cam *cam, __u32 code)
 {
-	state->fmt = &ctrl->fmts[ctrl->default_fmt];
-	state->width = ctrl->o_width;
-	state->height = ctrl->o_height;	
-	state->streaming = 0;
-	state->flags = 0x00;
-}
-
-struct vc_framefmt *vc_core_find_framefmt(struct vc_ctrl *ctrl, __u32 code)
-{
+	struct vc_ctrl *ctrl = &cam->ctrl;
 	struct device *dev = &ctrl->client_sen->dev; 
-	struct vc_framefmt *fmts = ctrl->fmts;
-
+	struct vc_fmt *fmts = ctrl->fmts;
 	int i;
 
+	dev_dbg(dev, "%s(): Find format 0x%04x\n", __FUNCTION__, code);
+
 	for (i = 0; fmts[i].code != 0; i++) {
-		struct vc_framefmt *fmt = &fmts[i];
+		struct vc_fmt *fmt = &fmts[i];
 		dev_dbg(dev, "%s(): Checking format (code: 0x%04x)", __FUNCTION__, fmt->code);
 		if(fmt->code == code) {
 			return fmt;
 		}
 	}
 	return NULL;
+}
+
+int vc_core_set_format(struct vc_cam *cam, __u32 code)
+{
+	struct vc_ctrl *ctrl = &cam->ctrl;
+	struct vc_state *state = &cam->state;
+	struct device *dev = &ctrl->client_sen->dev; 
+	struct vc_fmt *fmt;
+
+	dev_dbg(dev, "%s(): Set format 0x%04x\n", __FUNCTION__, code);
+
+	fmt = vc_core_find_format(cam, code);
+	if (fmt == NULL) {
+		fmt = &ctrl->fmts[ctrl->default_fmt];
+		dev_err(dev, "%s(): Format 0x%04x not supported! (Set default format: 0x%04x)\n", __FUNCTION__, code, fmt->code);
+		state->fmt = fmt;
+		return -EIO;
+	}
+	state->fmt = fmt;
+	return 0;
+}
+
+__u32 vc_core_get_format(struct vc_cam *cam)
+{
+	struct vc_ctrl *ctrl = &cam->ctrl;
+	struct vc_state *state = &cam->state;
+	struct device *dev = &ctrl->client_sen->dev;
+
+	dev_dbg(dev, "%s(): Get format 0x%04x\n", __FUNCTION__, state->fmt->code);
+
+	return state->fmt->code;
+}
+
+int vc_core_set_frame(struct vc_cam *cam, __u32 width, __u32 height)
+{
+	struct vc_ctrl *ctrl = &cam->ctrl;
+	struct vc_state *state = &cam->state;
+	struct vc_frame *frame = &state->frame;
+	struct device *dev = &ctrl->client_sen->dev;
+	
+
+	dev_dbg(dev, "%s(): Set frame (width: %u, height: %u)\n", __FUNCTION__, width, height);
+
+	if (width > ctrl->o_frame.width) {
+		frame->width = ctrl->o_frame.width;
+	} else if (width < 0) {
+		frame->width = 0;
+	} else {
+		frame->width = width;
+	}
+
+	if (height > ctrl->o_frame.height) {
+		frame->height = ctrl->o_frame.height;
+	} else if (height < 0) {
+		frame->height = 0;
+	} else {
+		frame->height = height;
+	}
+
+	return 0;
+}
+
+struct vc_frame *vc_core_get_frame(struct vc_cam *cam)
+{
+	struct vc_ctrl *ctrl = &cam->ctrl;
+	struct vc_state *state = &cam->state;
+	struct vc_frame* frame = &state->frame;
+	struct device *dev = &ctrl->client_sen->dev;
+
+	dev_dbg(dev, "%s(): Get frame (width: %u, height: %u)\n", __FUNCTION__, frame->width, frame->height);
+
+	return frame;
 }
 
 
@@ -207,8 +274,9 @@ struct i2c_client *vc_mod_get_client(struct i2c_adapter *adapter, __u8 i2c_addr)
 	return i2c_new_probed_device(adapter, &info, addr_list, NULL);
 }
 
-int vc_mod_set_power(struct vc_ctrl *ctrl, int on)
+int vc_mod_set_power(struct vc_cam *cam, int on)
 {
+	struct vc_ctrl *ctrl = &cam->ctrl;
 	struct i2c_client *client_mod = ctrl->client_mod;
 	struct device *dev = &client_mod->dev;
 	int ret;
@@ -216,11 +284,15 @@ int vc_mod_set_power(struct vc_ctrl *ctrl, int on)
 	dev_dbg(dev, "%s(): Set module power: %s\n", __FUNCTION__, on ? "up" : "down");
 
 	ret = i2c_write_reg(dev, client_mod, MOD_REG_RESET, on ? REG_RESET_PWR_UP : REG_RESET_PWR_DOWN, __FUNCTION__);
-	if (ret)
+	if (ret) {
 		dev_err(dev, "%s(): Unable to power %s the module (error: %d)\n", __FUNCTION__,
 			(on == REG_RESET_PWR_UP) ? "up" : "down", ret);
-
-	return ret;
+		cam->state.power_on = 0;
+		return ret;
+	} 
+	
+	cam->state.power_on = on;
+	return 0;
 }
 
 int vc_mod_get_status(struct i2c_client *client)
@@ -331,14 +403,29 @@ int vc_mod_setup(struct vc_ctrl *ctrl, int mod_i2c_addr, struct vc_desc *desc)
 	return 0;
 }
 
-int vc_mod_is_color_sensor(struct vc_desc *desc)
+void vc_core_state_init(struct vc_ctrl *ctrl, struct vc_state *state)
 {
-	if (desc->sen_type) {
-		__u32 len = strnlen(desc->sen_type, 16);
-		if (len > 0 && len < 17) {
-			return *(desc->sen_type + len - 1) == 'C';
-		}
+	state->fmt = &ctrl->fmts[ctrl->default_fmt];
+	state->frame.width = ctrl->o_frame.width;
+	state->frame.height = ctrl->o_frame.height;	
+	state->streaming = 0;
+	state->flags = 0x00;
+}
+
+int vc_core_init(struct vc_cam *cam, struct i2c_client *client) 
+{
+	int ret;
+
+	cam->ctrl.client_sen = client;
+	ret = vc_mod_setup(&cam->ctrl, 0x10, &cam->desc);
+	if (ret) {
+		return -EIO;
 	}
+	ret = vc_mod_ctrl_init(&cam->ctrl, &cam->desc);
+	if (ret) {
+		return -EIO;
+	}
+	vc_core_state_init(&cam->ctrl, &cam->state);
 	return 0;
 }
 
@@ -389,8 +476,9 @@ int vc_mod_write_mode(struct i2c_client *client, int mode)
 	return ret;
 }
 
-int vc_mod_reset_module(struct vc_ctrl *ctrl, int mode)
+int vc_mod_reset_module(struct vc_cam *cam, int mode)
 {
+	struct vc_ctrl *ctrl = &cam->ctrl;
 	struct i2c_client *client = ctrl->client_mod;
 	struct device *dev = &client->dev;
 	int ret;
@@ -398,16 +486,18 @@ int vc_mod_reset_module(struct vc_ctrl *ctrl, int mode)
 	dev_dbg(dev, "%s(): Reset the module!\n", __FUNCTION__);
 
 	// TODO: Check if it really necessary to set mode in power down state.
-	ret = vc_mod_set_power(ctrl, 0);
+	ret = vc_mod_set_power(cam, 0);
 	ret |= vc_mod_write_mode(client, mode);
-	ret |= vc_mod_set_power(ctrl, 1);
+	ret |= vc_mod_set_power(cam, 1);
 	ret |= vc_mod_wait_until_module_is_ready(client);
 
 	return ret;
 }
 
-int vc_mod_set_mode(struct vc_ctrl *ctrl, struct vc_state *state)
+int vc_mod_set_mode(struct vc_cam *cam)
 {
+	struct vc_ctrl *ctrl = &cam->ctrl;
+	struct vc_state *state = &cam->state;
 	struct i2c_client *client_mod = ctrl->client_mod;
 	struct device *dev = &client_mod->dev;
 	struct vc_mode *mode;
@@ -425,7 +515,7 @@ int vc_mod_set_mode(struct vc_ctrl *ctrl, struct vc_state *state)
 			__FUNCTION__, state->fmt->code, flags, mode->code, mode->flags, mode->value);
 	}
 
-	ret  = vc_mod_reset_module(ctrl, mode->value);
+	ret  = vc_mod_reset_module(cam, mode->value);
 	if (ret) {
 		dev_err(dev, "%s(): Unable to set mode: (code: 0x%04x, flags: 0x%02x, value: 0x%02x) (error=%d)\n", __func__, 
 			mode->code, mode->flags, mode->value, ret);
@@ -448,6 +538,7 @@ int vc_sen_write_mode(struct vc_ctrl *ctrl, int mode)
 
 	dev_dbg(dev, "%s(): Write sensor mode: %s\n", __FUNCTION__, (mode == SEN_MODE_STANDBY)? "standby" : "operating");
 
+	// TODO: Check if it is realy nessesary to swap order of write opertations.
 	if(mode == SEN_MODE_STANDBY) {
 		value = SEN_MODE_STANDBY;
 		if(ctrl->csr.sen.mode.l) {
@@ -471,8 +562,9 @@ int vc_sen_write_mode(struct vc_ctrl *ctrl, int mode)
 	return ret;
 }
 
-int vc_sen_set_roi(struct vc_ctrl *ctrl, int width, int height)
+int vc_sen_set_roi(struct vc_cam *cam, int width, int height)
 {
+	struct vc_ctrl *ctrl = &cam->ctrl;
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
 	int ret;
@@ -520,8 +612,9 @@ int vc_sen_write_exposure(struct vc_ctrl *ctrl, __u32 exposure)
 	return i2c_write_reg3(dev, client, &ctrl->csr.sen.expo, exposure, __FUNCTION__);
 }
 
-int vc_sen_set_gain(struct vc_ctrl *ctrl, int value)
+int vc_sen_set_gain(struct vc_cam *cam, int value)
 {
+	struct vc_ctrl *ctrl = &cam->ctrl;
 	struct i2c_client *client = ctrl->client_sen;
 	struct device *dev = &client->dev;
 	int ret = 0;
@@ -535,21 +628,23 @@ int vc_sen_set_gain(struct vc_ctrl *ctrl, int value)
 	return ret;
 }
 
-int vc_sen_start_stream(struct vc_ctrl *ctrl, struct vc_state *state)
+int vc_sen_start_stream(struct vc_cam *cam)
 {
-	struct i2c_client *client_sen = ctrl->client_sen;
+	struct vc_ctrl *ctrl = &cam->ctrl;
+	struct vc_state *state = &cam->state;
 	struct i2c_client *client_mod = ctrl->client_mod;
-	struct device *dev = &client_sen->dev;
+	struct device *dev = &ctrl->client_sen->dev;
 	int ret = 0;
 
 	dev_dbg(dev, "%s(): Start streaming\n", __FUNCTION__);
 
 	if(ctrl->flags & MASK_IO_ENABLED) {
-		ret  = vc_mod_set_trigger_in(client_mod, REG_TRIGGER_IN_DISABLE);
-		ret |= vc_mod_set_flash_out(client_mod, (state->flags & FLAG_FLASH_OUT)?1:0);
+		ret  = vc_mod_set_trigger_in(client_mod, 
+			(state->flags & FLAG_TRIGGER_IN) ? REG_TRIGGER_IN_ENABLE : REG_TRIGGER_IN_DISABLE);
+		ret |= vc_mod_set_flash_out(client_mod, 
+			(state->flags & FLAG_FLASH_OUT) ? REG_FLASH_OUT_ENABLE : REG_FLASH_OUT_DISABLE);
 	}
 
-	// Start sensor streaming
 	ret |= vc_sen_write_mode(ctrl, SEN_MODE_OPERATING);
 	if (ret)
 		dev_err(dev, "%s(): Unable to start streaming (error=%d)\n", __FUNCTION__, ret);
@@ -557,21 +652,20 @@ int vc_sen_start_stream(struct vc_ctrl *ctrl, struct vc_state *state)
 	return ret;
 }
 
-int vc_sen_stop_stream(struct vc_ctrl *ctrl, struct vc_state *state)
+int vc_sen_stop_stream(struct vc_cam *cam)
 {
-	struct i2c_client *client_sen = ctrl->client_sen;
+	struct vc_ctrl *ctrl = &cam->ctrl;
 	struct i2c_client *client_mod = ctrl->client_mod;
-	struct device *dev = &client_sen->dev;
+	struct device *dev = &ctrl->client_sen->dev;
 	int ret = 0;
 
 	dev_dbg(dev, "%s(): Stop streaming\n", __FUNCTION__);
 
 	if (ctrl->flags & MASK_IO_ENABLED) {
 		ret |= vc_mod_set_trigger_in(client_mod, REG_TRIGGER_IN_DISABLE);
-		// ret |= vc_mod_set_flash_out(client_mod, REG_IOCTRL_DISABLE);
+		ret |= vc_mod_set_flash_out(client_mod, REG_FLASH_OUT_DISABLE);
 	}
 
-	// Stop sensor streaming
 	ret |= vc_sen_write_mode(ctrl, SEN_MODE_STANDBY);
 	if (ret)
 		dev_err(dev, "%s(): Unable to stop streaming (error=%d)\n", __FUNCTION__, ret);
@@ -582,8 +676,10 @@ int vc_sen_stop_stream(struct vc_ctrl *ctrl, struct vc_state *state)
 
 // ------------------------------------------------------------------------------------------------
 
-int vc_sen_set_exposure_dirty(struct vc_ctrl *ctrl, struct vc_state *state, int value)
+int vc_sen_set_exposure_dirty(struct vc_cam *cam, int value)
 {
+	struct vc_ctrl *ctrl = &cam->ctrl;
+	struct vc_state *state = &cam->state;
 	struct i2c_client *client_sen = ctrl->client_sen;
 	struct i2c_client *client_mod = ctrl->client_mod;
 	struct device *dev = &client_sen->dev;

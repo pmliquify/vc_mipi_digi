@@ -9,6 +9,8 @@
  *
  */
 
+// #define DEBUG
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -59,7 +61,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.name		= "Y8-RAW",
 		.fourcc		= V4L2_PIX_FMT_GREY,
 		.depth		= { 8 },
-		.color		= MXC_ISI_OUT_FMT_RAW8,
+		.color		= MXC_ISI_OUT_FMT_RAW8, 	// Not tested yet
 		.memplanes	= 1,
 		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_Y8_1X8,
@@ -67,7 +69,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.name		= "Y10-RAW",
 		.fourcc		= V4L2_PIX_FMT_Y10,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
+		.color		= MXC_ISI_OUT_FMT_RAW10, 	// Not tested yet
 		.memplanes	= 1,
 		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
@@ -75,7 +77,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.name		= "Y12-RAW",
 		.fourcc		= V4L2_PIX_FMT_Y12,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
+		.color		= MXC_ISI_OUT_FMT_RAW12, 	// Not tested yet
 		.memplanes	= 1,
 		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
@@ -83,7 +85,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.name		= "SRGGB8-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB8,
 		.depth		= { 8 },
-		.color		= MXC_ISI_OUT_FMT_RAW8,
+		.color		= MXC_ISI_OUT_FMT_RAW8, 	// Not tested yet
 		.memplanes	= 1,
 		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
@@ -91,7 +93,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.name		= "SRGGB10-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB10,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
+		.color		= MXC_ISI_OUT_FMT_RAW16, 	// Workaround
 		.memplanes	= 1,
 		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
@@ -99,7 +101,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.name		= "SRGGB12-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB12,
 		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
+		.color		= MXC_ISI_OUT_FMT_RAW12, 	// Not tested yet
 		.memplanes	= 1,
 		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
@@ -112,7 +114,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.color		= MXC_ISI_OUT_FMT_RGB565,
 		.memplanes	= 1,
 		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_RGB565_1X16,
+		.mbus_code  = MEDIA_BUS_FMT_RGB565_1X16,
 	}, {
 		.name		= "RGB24",
 		.fourcc		= V4L2_PIX_FMT_RGB24,
@@ -120,7 +122,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.color		= MXC_ISI_OUT_FMT_BGR32P,
 		.memplanes	= 1,
 		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.mbus_code  = MEDIA_BUS_FMT_RGB888_1X24,
 	}, {
 		.name		= "BGR24",
 		.fourcc		= V4L2_PIX_FMT_BGR24,
@@ -128,7 +130,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.color		= MXC_ISI_OUT_FMT_RGB32P,
 		.memplanes	= 1,
 		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_BGR888_1X24,
+		.mbus_code  = MEDIA_BUS_FMT_BGR888_1X24,
 	}, {
 		.name		= "YUYV-16",
 		.fourcc		= V4L2_PIX_FMT_YUYV,
@@ -196,58 +198,7 @@ struct mxc_isi_fmt mxc_isi_src_formats[] = {
 		.depth		= { 32 },
 		.memplanes	= 1,
 		.colplanes	= 1,
-	},
-// vvv *** VC MIPI ************************************************************
-	{
-		.name		= "Y8-RAW",
-		.fourcc		= V4L2_PIX_FMT_GREY,
-		.depth		= { 8 },
-		.color		= MXC_ISI_OUT_FMT_RAW8,
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_Y8_1X8,
-	}, {
-		.name		= "Y10-RAW",
-		.fourcc		= V4L2_PIX_FMT_Y10,
-		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
-	}, {
-		.name		= "Y12-RAW",
-		.fourcc		= V4L2_PIX_FMT_Y12,
-		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
-	}, {
-		.name		= "SRGGB8-RAW",
-		.fourcc		= V4L2_PIX_FMT_SRGGB8,
-		.depth		= { 8 },
-		.color		= MXC_ISI_OUT_FMT_RAW8,
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
-	}, {
-		.name		= "SRGGB10-RAW",
-		.fourcc		= V4L2_PIX_FMT_SRGGB10,
-		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10,
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
-	}, {
-		.name		= "SRGGB12-RAW",
-		.fourcc		= V4L2_PIX_FMT_SRGGB12,
-		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12,
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
 	}
-// ^^^ ************************************************************************
 };
 
 struct mxc_isi_fmt *mxc_isi_get_format(unsigned int index)
@@ -281,21 +232,9 @@ struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat,
 	return def_fmt;
 }
 
-struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct device *dev, struct v4l2_subdev_format *sd_fmt)
+struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct v4l2_subdev_format *sd_fmt)
 {
-	__u32 index;
-
-// vvv *** VC MIPI ************************************************************
-	struct mxc_isi_fmt *fmt = NULL;
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(mxc_isi_src_formats); i++) {
-		fmt = &mxc_isi_src_formats[i];
-		if (fmt->mbus_code == sd_fmt->format.code) {
-			return &mxc_isi_src_formats[i];
-		}
-	}
-// ^^^ ************************************************************************
+	u32 index;
 
 	 /* two fmt RGB32 and YUV444 from pixellink */
 	if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
@@ -306,9 +245,7 @@ struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct device *dev, struct v4l2_subdev_f
 		index = 1;
 	else
 		index = 0;
-
 	return &mxc_isi_src_formats[index];
-	// return &mxc_isi_src_formats[1];
 }
 
 static inline struct mxc_isi_buffer *to_isi_buffer(struct vb2_v4l2_buffer *v4l2_buf)
@@ -519,8 +456,6 @@ static void cap_vb2_buffer_queue(struct vb2_buffer *vb2)
 	struct mxc_isi_cap_dev *isi_cap = vb2_get_drv_priv(vb2->vb2_queue);
 	unsigned long flags;
 
-	pr_info("%s\n", __FUNCTION__);
-
 	spin_lock_irqsave(&isi_cap->slock, flags);
 
 	mxc_isi_update_buf_paddr(buf, isi_cap->dst_f.fmt->mdataplanes);
@@ -690,7 +625,7 @@ static int mxc_isi_s_ctrl(struct v4l2_ctrl *ctrl)
 	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
 	unsigned long flags;
 
-	dev_info(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
 
 	if (ctrl->flags & V4L2_CTRL_FLAG_INACTIVE)
 		return 0;
@@ -1022,10 +957,6 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
 	if (!src_sd)
 		return -EINVAL;
 
-	// vvv *** VC MIPI ****************************************************
-	// dbg_mxc_isi_frame(&isi_cap->pdev->dev, "DST", dst_f);
-	// ^^^ ****************************************************************
-
 	src_fmt.pad = source_pad->index;
 	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 
@@ -1051,7 +982,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
 	}
 
 	/* Pixel link master will transfer format to RGB32 or YUV32 */
-	src_f->fmt = mxc_isi_get_src_fmt(&isi_cap->pdev->dev, &src_fmt);
+	src_f->fmt = mxc_isi_get_src_fmt(&src_fmt);
 
 	set_frame_bounds(src_f, src_fmt.format.width, src_fmt.format.height);
 
@@ -1063,10 +994,6 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
 			dst_f->width, dst_f->height);
 		return -EINVAL;
 	}
-
-	// vvv *** VC MIPI ****************************************************
-	// dbg_mxc_isi_frame(&isi_cap->pdev->dev, "SRC", src_f);
-	// ^^^ ****************************************************************
 
 	return 0;
 }
@@ -1090,7 +1017,7 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 	 * Step5: Update mxc isi channel configuration.
 	 */
 
-	dev_info(&isi_cap->pdev->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
+	dev_dbg(&isi_cap->pdev->dev, "%s, fmt=0x%X\n", __func__, pix->pixelformat);
 	if (vb2_is_busy(&isi_cap->vb2_q))
 		return -EBUSY;
 
@@ -1146,10 +1073,6 @@ static int mxc_isi_cap_s_fmt_mplane(struct file *file, void *priv,
 
 	memcpy(&isi_cap->pix, pix, sizeof(*pix));
 	set_frame_bounds(dst_f, pix->width, pix->height);
-
-	// vvv *** VC MIPI ****************************************************
-	// dbg_mxc_isi_frame(&isi_cap->pdev->dev, "s_fmt_mplane DST", dst_f);
-	// ^^^ ****************************************************************
 
 	return 0;
 }
@@ -1208,7 +1131,7 @@ static int mxc_isi_cap_streamon(struct file *file, void *priv,
 	struct mxc_isi_dev *mxc_isi = mxc_isi_get_hostdata(isi_cap->pdev);
 	int ret;
 
-	// dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
+	dev_dbg(&isi_cap->pdev->dev, "%s\n", __func__);
 
 	ret = mxc_isi_config_parm(isi_cap);
 	if (ret < 0)
@@ -1910,7 +1833,6 @@ static int mxc_isi_register_cap_device(struct mxc_isi_cap_dev *isi_cap,
 		goto err_ctrl_free;
 #ifndef CONFIG_VIDEO_ECAM
 	vdev->ctrl_handler = &isi_cap->ctrls.handler;
-	v4l2_dev->ctrl_handler = &isi_cap->ctrls.handler;
 #endif
 	v4l2_info(v4l2_dev, "Registered %s as /dev/%s\n",
 		  vdev->name, video_device_node_name(vdev));
@@ -1920,9 +1842,9 @@ static int mxc_isi_register_cap_device(struct mxc_isi_cap_dev *isi_cap,
 err_ctrl_free:
 #ifndef CONFIG_VIDEO_ECAM
 	mxc_isi_ctrls_delete(isi_cap);
-#endif
 
 err_me_cleanup:
+#endif
 	media_entity_cleanup(&vdev->entity);
 err_free_ctx:
 	return ret;

@@ -6,6 +6,7 @@
 #include <dt-bindings/pinctrl/pads-imx8qxp.h>
 
 #include "imx8-isi-hw.h"
+#include "imx8-isi-core.h"
 #include "imx8-common.h"
 
 #define	ISI_DOWNSCALE_THRESHOLD		0x4000
@@ -64,7 +65,7 @@ void dump_isi_regs(struct mxc_isi_dev *mxc_isi)
 	dev_dbg(dev, "ISI CHNLC register dump, isi%d\n", mxc_isi->id);
 	for (i = 0; i < ARRAY_SIZE(registers); i++) {
 		u32 reg = readl(mxc_isi->regs + registers[i].offset);
-		dev_dbg(dev, "%20s[0x%.2x]: %.2x\n",
+		dev_dbg(dev, "%20s[0x%02x]: 0x%08x\n",
 			registers[i].name, registers[i].offset, reg);
 	}
 }
@@ -288,7 +289,6 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *mxc_isi,
 			     struct mxc_isi_frame *src_f,
 			     struct mxc_isi_frame *dst_f)
 {
-	struct device *dev = &mxc_isi->pdev->dev;
 	struct mxc_isi_fmt *src_fmt = src_f->fmt;
 	struct mxc_isi_fmt *dst_fmt = dst_f->fmt;
 	u32 val, csc = 0;
@@ -301,8 +301,6 @@ void mxc_isi_channel_set_csc(struct mxc_isi_dev *mxc_isi,
 
 	/* set outbuf format */
 	val |= dst_fmt->color << CHNL_IMG_CTRL_FORMAT_OFFSET;
-	// *** VC MIPI ********************************************************
-	dev_dbg(dev, "%s(): dst_fmt->color: 0x%08x (%u)\n", __FUNCTION__, dst_fmt->color, dst_fmt->color);
 
 	mxc_isi->cscen = 1;
 
@@ -432,6 +430,12 @@ void mxc_isi_channel_set_crop(struct mxc_isi_dev *mxc_isi)
 	if ((src_f->o_height == src_f->height) &&
 	    (src_f->o_width == src_f->width)) {
 		mxc_isi->crop = 0;
+		// *** VC MIPI ************************************************
+		// val0 = 0;
+		// val1 = src_f->o_height | (src_f->o_width << CHNL_CROP_LRC_X_OFFSET);
+		// writel(val0, mxc_isi->regs + CHNL_CROP_ULC);
+		// writel((val1 + val0), mxc_isi->regs + CHNL_CROP_LRC);
+		// ************************************************************
 		writel(val, mxc_isi->regs + CHNL_IMG_CTRL);
 		return;
 	}
@@ -487,8 +491,8 @@ void mxc_isi_channel_set_scaling(struct mxc_isi_dev *mxc_isi,
 		mxc_isi->scale = 0;
 		mxc_isi_channel_clear_scaling(mxc_isi);
 		// *** VC MIPI ************************************************
-		// dev_dbg(&mxc_isi->pdev->dev, "%s: no scale\n", __func__);
-		dev_info(&mxc_isi->pdev->dev, "%s: no scale\n", __func__);
+		dev_dbg(&mxc_isi->pdev->dev, "%s: no scale\n", __func__);
+		// dev_info(&mxc_isi->pdev->dev, "%s: no scale\n", __func__);
 		// ************************************************************
 		return;
 	}
@@ -614,9 +618,11 @@ void mxc_isi_channel_config(struct mxc_isi_dev *mxc_isi,
 	writel(val, mxc_isi->regs + CHNL_OUT_BUF_PITCH);
 
 	/* TODO */
-	mxc_isi_channel_set_flip(mxc_isi);
-
 	mxc_isi_channel_set_alpha(mxc_isi);
+
+	mxc_isi_channel_set_crop(mxc_isi);
+
+	mxc_isi_channel_set_flip(mxc_isi);
 
 	mxc_isi_channel_set_panic_threshold(mxc_isi);
 
@@ -665,7 +671,7 @@ void mxc_isi_channel_enable(struct mxc_isi_dev *mxc_isi, bool m2m_enabled)
 		return;
 	}
 
-	dump_isi_regs(mxc_isi);
+	// dump_isi_regs(mxc_isi);
 	msleep(300);
 }
 
