@@ -52,9 +52,7 @@ static struct vc_fmt imx226_mono_fmts[] = {
 	{ MEDIA_BUS_FMT_Y8_1X8,       V4L2_COLORSPACE_SRGB },   /* 8-bit grayscale pixel format  : V4L2_PIX_FMT_GREY 'GREY'     */
 	{ MEDIA_BUS_FMT_Y10_1X10,     V4L2_COLORSPACE_SRGB },   /* 10-bit grayscale pixel format : V4L2_PIX_FMT_Y10  'Y10 '     */
 	{ MEDIA_BUS_FMT_Y12_1X12,     V4L2_COLORSPACE_SRGB },   /* 12-bit grayscale pixel format : V4L2_PIX_FMT_Y12  'Y12 '     */
-	{ MEDIA_BUS_FMT_SRGGB8_1X8,   V4L2_COLORSPACE_SRGB },   /* 8-bit color pixel format      : V4L2_PIX_FMT_SRGGB8  'RGGB'  */
 	{ 0, 0 }
-	// use 8-bit 'RGGB' instead GREY format to save 8-bit frame(s) to raw file by v4l2-ctl
 };
 
 static struct vc_fmt imx226_color_fmts[] = {
@@ -73,12 +71,14 @@ void vc_init_imx226_ctrl(struct vc_ctrl *ctrl, struct vc_desc* desc)
 	ctrl->mod_id			= MOD_ID_IMX226;
 	ctrl->mod_i2c_addr		= 0x10;
 
-	ctrl->set.exposure.min		= 160;
-	ctrl->set.exposure.max		= 10000000;
-	ctrl->set.exposure.default_val	= 10000;
-	ctrl->set.gain.min		= 0x0000;
-	ctrl->set.gain.max		= 0x07A5;		// 1957
-	ctrl->set.gain.default_val	= 0x0010;
+	ctrl->exposure.enabled		= 1;
+	ctrl->exposure.min		= 160;
+	ctrl->exposure.max		= 10000000;
+	ctrl->exposure.default_val	= 10000;
+	ctrl->gain.enabled		= 1;
+	ctrl->gain.min			= 0x0000;
+	ctrl->gain.max			= 0x07A5;		// 1957
+	ctrl->gain.default_val		= 0x0010;
 
 	if (vc_mod_is_color_sensor(desc)) {
 		ctrl->modes		= imx226_color_modes;
@@ -151,12 +151,14 @@ void vc_init_imx327_ctrl(struct vc_ctrl *ctrl, struct vc_desc* desc)
 	ctrl->mod_id			= MOD_ID_IMX327;
 	ctrl->mod_i2c_addr		= 0x10;
 
-	ctrl->set.exposure.min		= 29;
-	ctrl->set.exposure.max		= 7767184;
-	ctrl->set.exposure.default_val	= 10000;
-	ctrl->set.gain.min		= 0;
-	ctrl->set.gain.max		= 240;
-	ctrl->set.gain.default_val	= 0;
+	ctrl->exposure.enabled		= 1;
+	ctrl->exposure.min		= 29;
+	ctrl->exposure.max		= 7767184;
+	ctrl->exposure.default_val	= 10000;
+	ctrl->gain.enabled		= 1;
+	ctrl->gain.min			= 0;
+	ctrl->gain.max			= 240;
+	ctrl->gain.default_val		= 0;
 
 	if (vc_mod_is_color_sensor(desc)) {
 		ctrl->modes		= imx327_color_modes;

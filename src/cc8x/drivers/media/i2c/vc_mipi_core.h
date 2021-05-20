@@ -32,15 +32,11 @@ struct vc_desc {
 	__u8 mode4[16];
 };
 
-struct vc_range {
+struct vc_control {
+	__u32 enabled;
 	__u32 min;
 	__u32 max;
 	__u32 default_val;
-};
-
-struct vc_settings {
-	struct vc_range exposure;
-	struct vc_range gain;
 };
 
 struct vc_fmt {
@@ -89,15 +85,16 @@ struct vc_ctrl {
 	// Communication
 	struct i2c_client *client_sen;
 	struct i2c_client *client_mod;
-	// Settings
-	struct vc_settings set;
+	// Controls
+	struct vc_control exposure;
+	struct vc_control gain;
 	// Modes & Frame Formats
 	struct vc_mode *modes;
 	int default_mode;
 	struct vc_fmt *fmts;
 	int default_fmt;
 	struct vc_frame o_frame;
-	// Control and status register
+	// Control and status registers
 	struct vc_csr csr;
 	// Exposure
 	__u32 sen_clk;

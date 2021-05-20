@@ -20,7 +20,7 @@
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-subdev.h>
 
-struct vc_camera {
+struct vc_device {
 	struct v4l2_subdev sd;
 	struct media_pad pad;
 	struct v4l2_fwnode_endpoint ep; 	// the parsed DT endpoint info
@@ -28,15 +28,15 @@ struct vc_camera {
 	struct vc_cam cam;
 };
 
-static inline struct vc_camera *to_vc_camera(struct v4l2_subdev *sd)
+static inline struct vc_device *to_vc_device(struct v4l2_subdev *sd)
 {
-	return container_of(sd, struct vc_camera, sd);
+	return container_of(sd, struct vc_device, sd);
 }
 
 static inline struct vc_cam *to_vc_cam(struct v4l2_subdev *sd)
 {
-	struct vc_camera *camera = to_vc_camera(sd);
-	return &camera->cam;
+	struct vc_device *device = to_vc_device(sd);
+	return &device->cam;
 }
 
 
@@ -46,29 +46,6 @@ int vc_sd_s_power(struct v4l2_subdev *sd, int on)
 {
 	struct vc_cam *cam = to_vc_cam(sd);
 	return vc_mod_set_power(cam, on);
-}
-
-int vc_sd_queryctrl(struct v4l2_subdev *sd, struct v4l2_queryctrl *qc)
-{
-	struct device *dev = sd->dev;
-	int ret;
-	ret = v4l2_queryctrl(sd->ctrl_handler, qc);
-	dev_dbg(dev, "%s() Query control (id: 0x%08x, name: %s)\n", __FUNCTION__, qc->id, qc->name);
-	return ret;
-}
-
-int vc_sd_queryextctrl(struct v4l2_subdev *sd, struct v4l2_query_ext_ctrl *qec)
-{
-	struct device *dev = sd->dev;
-	dev_dbg(dev, "%s()\n", __FUNCTION__);
-	return 0;
-}
-
-int vc_sd_querymenu(struct v4l2_subdev *sd, struct v4l2_querymenu *qm)
-{
-	struct device *dev = sd->dev;
-	dev_dbg(dev, "%s()\n", __FUNCTION__);
-	return 0;
 }
 
 int vc_sd_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
@@ -82,6 +59,15 @@ int vc_sd_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
 	return v4l2_g_ctrl(sd->ctrl_handler, control);
 }
 
+__s32 vc_sd_get_ctrl_value(struct v4l2_subdev *sd, __u32 id)
+{
+	struct v4l2_control control;
+	control.id = id;
+	vc_sd_g_ctrl(sd, &control);
+	// TODO: Errorhandling
+	return control.value;
+}
+
 int vc_sd_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
 {
 	struct vc_cam *cam = to_vc_cam(sd);
@@ -90,12 +76,12 @@ int vc_sd_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
 
 	ctrl = v4l2_ctrl_find(sd->ctrl_handler, control->id);
 	if (ctrl == NULL) {
-		dev_err(dev, "%s(): Control with id 0x%08x not defined!\n", __FUNCTION__, control->id);
+		dev_err(dev, "%s(): Control with id: 0x%08x not defined!\n", __FUNCTION__, control->id);
 		return -EINVAL;
 	}
 
 	if (control->value < ctrl->minimum || control->value > ctrl->maximum) {
-		dev_err(dev, "%s(): Control value '%s' %d exceeds allowed range (%lld - %lld)\n", __FUNCTION__,
+		dev_err(dev, "%s(): Control '%s' with value: %d exceeds allowed range (%lld - %lld)\n", __FUNCTION__,
 			ctrl->name, control->value, ctrl->minimum, ctrl->maximum);
 		return -EINVAL;
 	}
@@ -113,78 +99,8 @@ int vc_sd_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *control)
 		return vc_sen_set_gain(cam, control->value);
 	}
 
-	dev_warn(dev, "%s(): ctrl(id:0x%x, val:0x%x) is not handled\n", __FUNCTION__, ctrl->id, ctrl->val);
+	dev_warn(dev, "%s(): Control with id: 0x%08x is not handled\n", __FUNCTION__, ctrl->id);
 	return -EINVAL;
-}
-
-int vc_g_ext_ctrls(struct v4l2_subdev *sd, struct v4l2_ext_controls *ctrls)
-{
-	struct device *dev = sd->dev;
-	struct v4l2_control control;
-	int ret;
-
-	dev_dbg(dev, "%s()\n", __FUNCTION__);
-
-	if(ctrls->count != 1 && ctrls->controls == NULL)
-		return -EINVAL;
-
-	control.id = ctrls->controls->id;
-	ret = vc_sd_g_ctrl(sd, &control);
-	if (ret)
-		return -EINVAL;
-
-	ctrls->count = 1;
-	ctrls->controls->value = control.value;
-	return 0;
-}
-
-int vc_s_ext_ctrls(struct v4l2_subdev *sd, struct v4l2_ext_controls *ctrls)
-{
-	struct device *dev = sd->dev;
-	struct v4l2_control control;
-
-	dev_dbg(dev, "%s()\n", __FUNCTION__);
-
-	if(ctrls->count != 1 && ctrls->controls == NULL)
-		return -EINVAL;
-
-	control.id = ctrls->controls->id;
-	control.value = ctrls->controls->value;
-	return vc_sd_s_ctrl(sd, &control);
-}
-
-int vc_sd_try_ext_ctrls(struct v4l2_subdev *sd, struct v4l2_ext_controls *ctrls)
-{
-	struct device *dev = sd->dev;
-	dev_dbg(dev, "%s()\n", __FUNCTION__);
-	return 0;
-}
-
-
-// __s32 vc_sd_get_ctrl_value(struct v4l2_subdev *sd, __u32 id)
-// {
-// 	struct v4l2_control control;
-// 	control.id = id;
-// 	vc_sd_g_ctrl(sd, &control);
-// 	// TODO: Errorhandling
-// 	return control.value;
-// }
-
-// --- v4l2_ctrl_ops ---------------------------------------------------
-
-int vc_s_ctrl(struct v4l2_ctrl *ctrl)
-{
-	struct v4l2_subdev *sd;
-	struct v4l2_control control;
-	
-	if(ctrl->priv != NULL) {
-		sd = (struct v4l2_subdev *)ctrl->priv;
-	}
-	
-	control.id = ctrl->id;
-	control.value = ctrl->val;
-	
-	return vc_sd_s_ctrl(sd, &control);
 }
 
 
@@ -207,11 +123,8 @@ int vc_sd_s_stream(struct v4l2_subdev *sd, int enable)
 		}
 
 		ret  = vc_mod_set_mode(cam);
-		// ret |= vc_sen_set_exposure_dirty(cam, ctrl->set.exposure.default_val);
-		// ret |= vc_sen_set_gain(cam, ctrl->set.gain.default_val);
-		// ret |= vc_sen_set_roi(cam, ctrl->o_frame.width, ctrl->o_frame.height);
-		ret |= vc_sen_set_exposure_dirty(cam, ctrl->set.exposure.default_val);
-		ret |= vc_sen_set_gain(cam, ctrl->set.gain.default_val);
+		ret |= vc_sen_set_exposure_dirty(cam, vc_sd_get_ctrl_value(sd, V4L2_CID_EXPOSURE));
+		ret |= vc_sen_set_gain(cam, vc_sd_get_ctrl_value(sd, V4L2_CID_GAIN));
 		ret |= vc_sen_set_roi(cam, ctrl->o_frame.width, ctrl->o_frame.height);
 
 		ret |= vc_sen_start_stream(cam);
@@ -261,30 +174,17 @@ int vc_sd_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_pad_config *cfg, st
 
 const struct v4l2_subdev_core_ops vc_core_ops = {
 	.s_power = vc_sd_s_power,
-// vvv Toradex Ixora Apalis ***************************************************
-	.queryctrl = vc_sd_queryctrl,
-	.queryextctrl = vc_sd_queryextctrl,
-	.querymenu = vc_sd_querymenu,
 	.g_ctrl = vc_sd_g_ctrl,
 	.s_ctrl = vc_sd_s_ctrl,
-	.g_ext_ctrls = vc_g_ext_ctrls,
-    	.s_ext_ctrls = vc_s_ext_ctrls,
-	.try_ext_ctrls = vc_sd_try_ext_ctrls,
-// ^^^ ************************************************************************
 };
 
 const struct v4l2_subdev_video_ops vc_video_ops = {
-	// .g_frame_interval = vc_sd_g_frame_interval,
-	// .s_frame_interval = vc_sd_s_frame_interval,
 	.s_stream = vc_sd_s_stream,
 };
 
 const struct v4l2_subdev_pad_ops vc_pad_ops = {
-	// .enum_mbus_code = vc_sd_enum_mbus_code,
 	.get_fmt = vc_sd_get_fmt,
 	.set_fmt = vc_sd_set_fmt,
-	// .enum_frame_size = vc_sd_enum_frame_size,
-	// .enum_frame_interval = vc_sd_enum_frame_interval,
 };
 
 const struct v4l2_subdev_ops vc_subdev_ops = {
@@ -293,54 +193,30 @@ const struct v4l2_subdev_ops vc_subdev_ops = {
 	.pad = &vc_pad_ops,
 };
 
-// imx8-mipi-csi2.c don't uses the ctrl ops. We have to handle all ops thru the subdev.
-const struct v4l2_ctrl_ops vc_ctrl_ops = {
-	// .queryctrl = vc_queryctrl,
-	// .try_ext_ctrls = vc_try_ext_ctrls,
-	// .s_ctrl = vc_s_ctrl,
-	// .g_ctrl = vc_g_ctrl,
-// vvv Toradex Dahlia Verdin **************************************************
-	// .s_ctrl = vc_s_ctrl,
-// ^^^ ************************************************************************
-// vvv Digi ConnectCore8X Dev Kit *********************************************
-	.s_ctrl = vc_s_ctrl,
-// ^^^ ************************************************************************
+struct v4l2_ctrl_config ctrl_config_gain = {
+	.id = V4L2_CID_GAIN,
+	.name = "Gain",
+	.type = V4L2_CTRL_TYPE_INTEGER,
+	.flags = V4L2_CTRL_FLAG_SLIDER,
+	.step = 1,
 };
 
-struct v4l2_ctrl_config ctrl_config_list[] = {
-	{
-		// Leads to a hangup while booting on the DIGI ConnectCore8X Dev Kit
-		// .ops = &vc_ctrl_ops,
-		.id = V4L2_CID_GAIN,
-		.name = "Gain2", // Do not change the name field for the controls!
-		.type = V4L2_CTRL_TYPE_INTEGER,
-		.flags = V4L2_CTRL_FLAG_SLIDER,
-		.min = 0,
-		.max = 0xfff,
-		.def = 0,
-		.step = 1,
-	},
-	{
-		// Leads to a hangup while booting on the DIGI ConnectCore8X Dev Kit
-		// .ops = &vc_ctrl_ops,
-		.id = V4L2_CID_EXPOSURE,
-		.name = "Exposure2", // Do not change the name field for the controls!
-		.type = V4L2_CTRL_TYPE_INTEGER,
-		.flags = V4L2_CTRL_FLAG_SLIDER,
-		.min = 0,
-		.max = 16000000,
-		.def = 0,
-		.step = 1,
-	},
+struct v4l2_ctrl_config ctrl_config_exposure = {
+	.id = V4L2_CID_EXPOSURE,
+	.name = "Exposure", 
+	.type = V4L2_CTRL_TYPE_INTEGER,
+	.flags = V4L2_CTRL_FLAG_SLIDER,
+	.step = 1,
 };
 
-int vc_sd_init(struct v4l2_subdev *sd, struct i2c_client *client)
+int vc_sd_init(struct vc_device *device)
 {
+	struct v4l2_subdev *sd = &device->sd;
+	struct i2c_client *client = device->cam.ctrl.client_sen;
 	struct device *dev = &client->dev;
 	struct v4l2_ctrl_handler *ctrl_hdl;
 	struct v4l2_ctrl *ctrl;
-	int num_ctrls = ARRAY_SIZE(ctrl_config_list);
-	int ret, i;
+	int ret;
 
 	// Initializes the subdevice
 	v4l2_i2c_subdev_init(sd, client, &vc_subdev_ops);
@@ -353,15 +229,24 @@ int vc_sd_init(struct v4l2_subdev *sd, struct i2c_client *client)
 		return ret;
 	}
 
-	for (i = 0; i < num_ctrls; i++) {
-		// Leads to a hangup while booting on the DIGI ConnectCore8X Dev Kit
-		// when v4l2_ctrl_new_custom(..., sd) is set.
-		ctrl_config_list[i].ops = &vc_ctrl_ops;
-		ctrl = v4l2_ctrl_new_custom(ctrl_hdl, &ctrl_config_list[i], NULL);
+	if(device->cam.ctrl.exposure.enabled) {
+		ctrl_config_exposure.min = device->cam.ctrl.exposure.min;
+		ctrl_config_exposure.max = device->cam.ctrl.exposure.max;
+		ctrl_config_exposure.def = device->cam.ctrl.exposure.default_val;
+		ctrl = v4l2_ctrl_new_custom(ctrl_hdl, &ctrl_config_exposure, NULL);
 		if (ctrl == NULL) {
-			dev_err(dev, "%s(): Failed to init %s ctrl\n", __FUNCTION__,
-				ctrl_config_list[i].name);
-			continue;
+			dev_err(dev, "%s(): Failed to init %s ctrl\n", __FUNCTION__, ctrl_config_exposure.name);
+		}
+		ctrl->priv = (void*)sd;
+	}
+
+	if(device->cam.ctrl.gain.enabled) {
+		ctrl_config_gain.min = device->cam.ctrl.gain.min;
+		ctrl_config_gain.max = device->cam.ctrl.gain.max;
+		ctrl_config_gain.def = device->cam.ctrl.gain.default_val;
+		ctrl = v4l2_ctrl_new_custom(ctrl_hdl, &ctrl_config_gain, NULL);
+		if (ctrl == NULL) {
+			dev_err(dev, "%s(): Failed to init %s ctrl\n", __FUNCTION__, ctrl_config_gain.name);
 		}
 		ctrl->priv = (void*)sd;
 	}
@@ -395,73 +280,76 @@ static int vc_probe(struct i2c_client *client)
 {
 	struct device *dev = &client->dev;
 	struct fwnode_handle *endpoint;
-	struct vc_camera *camera;
+	struct vc_device *device;
 	int ret;
 
-	camera = devm_kzalloc(dev, sizeof(*camera), GFP_KERNEL);
-	if (!camera)
+	device = devm_kzalloc(dev, sizeof(*device), GFP_KERNEL);
+	if (!device)
 		return -ENOMEM;
 
 	endpoint = fwnode_graph_get_next_endpoint(dev_fwnode(dev), NULL);
 	if (!endpoint) {
-		dev_err(dev, "[vc-mipi vc_mipi] endpoint node not found\n");
+		dev_err(dev, "%s(): Endpoint node not found\n", __FUNCTION__);
 		return -EINVAL;
 	}
 
-	ret = v4l2_fwnode_endpoint_parse(endpoint, &camera->ep);
+	ret = v4l2_fwnode_endpoint_parse(endpoint, &device->ep);
 	fwnode_handle_put(endpoint);
 	if (ret) {
-		dev_err(dev, "[vc-mipi vc_mipi] Could not parse endpoint\n");
+		dev_err(dev, "%s(): Could not parse endpoint\n", __FUNCTION__);
 		return ret;
 	}
 
-	ret = vc_sd_init(&camera->sd, client);
-	if (ret)
-		goto free_ctrls;
-
-	camera->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
-	camera->pad.flags = MEDIA_PAD_FL_SOURCE;
-	camera->sd.entity.ops = &vc_sd_media_ops;
-	camera->sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
-	ret = media_entity_pads_init(&camera->sd.entity, 1, &camera->pad);
-	if (ret)
-		return ret;
-
-	ret = vc_core_init(&camera->cam, client);
+	ret = vc_core_init(&device->cam, client);
 	if (ret) 
 		goto free_ctrls;
 
-	ret = v4l2_async_register_subdev_sensor_common(&camera->sd);
+	ret = vc_sd_init(device);
+	if (ret)
+		goto free_ctrls;
+
+	device->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
+	device->pad.flags = MEDIA_PAD_FL_SOURCE;
+	device->sd.entity.ops = &vc_sd_media_ops;
+	device->sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
+	ret = media_entity_pads_init(&device->sd.entity, 1, &device->pad);
+	if (ret)
+		return ret;
+
+	ret = v4l2_async_register_subdev_sensor_common(&device->sd);
 	if (ret)
 		goto free_ctrls;
 
 	return 0;
 
 free_ctrls:
-	v4l2_ctrl_handler_free(camera->sd.ctrl_handler);
-	media_entity_cleanup(&camera->sd.entity);
+	v4l2_ctrl_handler_free(device->sd.ctrl_handler);
+	media_entity_cleanup(&device->sd.entity);
 	return ret;
 }
 
 static int vc_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
-	struct vc_camera *camera = to_vc_camera(sd);
+	struct vc_device *device = to_vc_device(sd);
 
-	v4l2_async_unregister_subdev(&camera->sd);
-	media_entity_cleanup(&camera->sd.entity);
-	v4l2_ctrl_handler_free(camera->sd.ctrl_handler);
+	v4l2_async_unregister_subdev(&device->sd);
+	media_entity_cleanup(&device->sd.entity);
+	v4l2_ctrl_handler_free(device->sd.ctrl_handler);
 
 	return 0;
 }
 
 static const struct i2c_device_id vc_id[] = {
 	{ "vc-mipi-cam", 0 },
-	{},
+	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(i2c, vc_id);
 
-static const struct of_device_id vc_dt_ids[] = { { .compatible = "vc,vc_mipi" }, { /* sentinel */ } };
+static const struct of_device_id vc_dt_ids[] = { 
+	{ .compatible = "vc,vc_mipi" }, 
+	{ /* sentinel */ } 
+};
 MODULE_DEVICE_TABLE(of, vc_dt_ids);
 
 static struct i2c_driver vc_i2c_driver = {
@@ -476,5 +364,6 @@ static struct i2c_driver vc_i2c_driver = {
 
 module_i2c_driver(vc_i2c_driver);
 
-MODULE_DESCRIPTION("IMX226 MIPI Camera Subdev Driver");
+MODULE_DESCRIPTION("VC MIPI Camera Driver");
+MODULE_VERSION("0.3.0");
 MODULE_LICENSE("GPL");

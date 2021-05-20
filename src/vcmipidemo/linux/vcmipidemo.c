@@ -152,6 +152,7 @@ int  media_set_roi(char *pcVideoDev, int optX0, int optY0, int optWidth, int opt
 int  sensor_open(char *dev_video_device, VCMipiSenCfg *sen, unsigned int qBufCount);
 int  sensor_close(VCMipiSenCfg *sen);
 int  sensor_set_shutter_gain(VCMipiSenCfg  *sen, int newGain, int newShutter);
+int  sensor_set_shutter_gain2(VCMipiSenCfg  *sen, int newGain, int newShutter);
 int  sensor_set_cropping_roi(VCMipiSenCfg  *sen, int newX0, int newY0, int newWidth, int newHeight);
 int  sensor_streaming_start(VCMipiSenCfg *sen);
 int  sensor_streaming_stop(VCMipiSenCfg *sen);
@@ -282,7 +283,7 @@ int  main(int argc, char *argv[])
 
 	// Apply new Shutter and Gain Settings
 	{
-		rc =  sensor_set_shutter_gain(&sen, optGain, optShutter);
+		rc =  sensor_set_shutter_gain2(&sen, optGain, optShutter);
 		if(rc<0)
 		{
 			printf("Warning:  Could not set Gain/Shutter!\n");
@@ -662,8 +663,8 @@ int  change_options_by_commandline(int argc, char *argv[], int *shutter, float *
 				printf("_______________________________________________________________________________\n");
 				printf("                                                                               \n");
 				return(+1);
-			case 'x':  *imageInfo  = 1;             printf("Printing image info for every acquired image\n"); break;
-			case '4':  *bitShift   = 1;             printf("Image raw data will be shifted 4 bits right\n"); break;
+			case 'x':  *imageInfo  = 1;             printf("Printing image info for every acquired image.\n"); break;
+			case '4':  *bitShift   = 1;             printf("Image raw data will be shifted 4 bits right.\n"); break;
 			case 's':  *shutter    = atol(optarg);  printf("Setting Shutter Value to %d.\n",*shutter);  break;
 			case 'g':  *gain       = atof(optarg);  printf("Setting Gain Value to %f.\n",   *gain   );  break;
 			case 'i':  *maxCaptures= atol(optarg);  printf("Take %d images.\n",*maxCaptures);           break;
@@ -1396,7 +1397,31 @@ fail:
 }
 
 
+int set_gain(int fd, int value)
+{
+        struct v4l2_control control;
+        control.id = V4L2_CID_GAIN;
+        control.value = value;
+        return ioctl(fd, VIDIOC_S_CTRL, &control);
+}
 
+int set_exposure(int fd, int value)
+{
+        struct v4l2_control control;
+        control.id = V4L2_CID_EXPOSURE;
+        control.value = value;
+        return ioctl(fd, VIDIOC_S_CTRL, &control);
+}
+
+int sensor_set_shutter_gain2(VCMipiSenCfg  *sen, int newGain, int newShutter)
+{
+	int ret = 0;
+	
+	ret  = set_gain(sen->fd, newGain);
+	ret |= set_exposure(sen->fd, newShutter);
+        
+	return ret;
+}
 
 
 /*--*FUNCTION*-----------------------------------------------------------------*/
@@ -1431,12 +1456,10 @@ int  sensor_set_shutter_gain(VCMipiSenCfg  *sen, int newGain, int newShutter)
 			queryctl.id=V4L2_CTRL_FLAG_NEXT_CTRL;
 			while(0==ioctl(sen->fd, VIDIOC_QUERYCTRL, &queryctl))
 			{
-				// printf("Control id: 0x%08x, name: %s\n", queryctl.id, queryctl.name);
 				if(!(queryctl.flags & V4L2_CTRL_FLAG_DISABLED))
 				{
 					if(0==strcmp(a10cTarget, (char*)queryctl.name))
 					{
-						// printf("Control found!\n");
 						goto foundId;
 					}
 				}
@@ -1448,7 +1471,6 @@ int  sensor_set_shutter_gain(VCMipiSenCfg  *sen, int newGain, int newShutter)
 		}
 foundId:
 
-		printf("GetOrSet\n");
 		for(getOrSet= 0; getOrSet< 3; getOrSet++)
 		{
 			switch(getOrSet)
@@ -1457,7 +1479,6 @@ foundId:
 				case 2:
 				// Only needed for debugging: Get old value.
 				{
-					printf("Get new value\n");
 					memset(&ext_ctl, 0, sizeof(ext_ctl));
 					ext_ctl.id = queryctl.id;
 
@@ -1485,7 +1506,6 @@ foundId:
 				case 1:
 				// Set new value.
 				{
-					printf("Set new value\n");
 					memset(&ext_ctl, 0, sizeof(ext_ctl));
 					ext_ctl.id = queryctl.id;
 					if(V4L2_CTRL_TYPE_INTEGER64==queryctl.type)

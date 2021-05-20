@@ -36,7 +36,7 @@
 
 
 // vvv *** VC MIPI ************************************************************
-
+#ifdef DEBUG
 void dbg_mxc_isi_fmt(struct device* dev, char *desc, struct mxc_isi_fmt *format)
 {
 	dev_info(dev, "%s N:%s CODE:0x%04x FOURCC: 0x%08x COLOR: 0x%02x MPLANES: %u COLPLANES: %u\n",
@@ -52,44 +52,12 @@ void dbg_mxc_isi_frame(struct device* dev, char *desc, struct mxc_isi_frame *fra
 		frame->c_width, frame->c_height, frame->h_off, frame->v_off, 
 		frame->width, frame->height);
 }
-
+#endif
 // ^^^ ************************************************************************
 
 struct mxc_isi_fmt mxc_isi_out_formats[] = {
 // vvv *** VC MIPI ************************************************************
 	{
-		.name		= "Y8-RAW",
-		.fourcc		= V4L2_PIX_FMT_GREY,
-		.depth		= { 8 },
-		.color		= MXC_ISI_OUT_FMT_RAW8, 	// Not tested yet
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_Y8_1X8,
-	}, {
-		.name		= "Y10-RAW",
-		.fourcc		= V4L2_PIX_FMT_Y10,
-		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW10, 	// Not tested yet
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
-	}, {
-		.name		= "Y12-RAW",
-		.fourcc		= V4L2_PIX_FMT_Y12,
-		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12, 	// Not tested yet
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
-	}, {
-		.name		= "SRGGB8-RAW",
-		.fourcc		= V4L2_PIX_FMT_SRGGB8,
-		.depth		= { 8 },
-		.color		= MXC_ISI_OUT_FMT_RAW8, 	// Not tested yet
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB8_1X8,
-	}, {
 		.name		= "SRGGB10-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB10,
 		.depth		= { 16 },
@@ -97,15 +65,7 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
 		.memplanes	= 1,
 		.colplanes	= 1,
 		.mbus_code	= MEDIA_BUS_FMT_SRGGB10_1X10,
-	}, {
-		.name		= "SRGGB12-RAW",
-		.fourcc		= V4L2_PIX_FMT_SRGGB12,
-		.depth		= { 16 },
-		.color		= MXC_ISI_OUT_FMT_RAW12, 	// Not tested yet
-		.memplanes	= 1,
-		.colplanes	= 1,
-		.mbus_code	= MEDIA_BUS_FMT_SRGGB12_1X12,
-	}, 
+	},
 // ^^^ ************************************************************************
 	{
 		.name		= "RGB565",
@@ -1087,8 +1047,10 @@ static int mxc_isi_config_parm(struct mxc_isi_cap_dev *isi_cap)
 		return -EINVAL;
 
 	// vvv *** VC MIPI ****************************************************
+#ifdef DEBUG
 	dbg_mxc_isi_frame(&isi_cap->pdev->dev, "SRC >>> ", &isi_cap->src_f);
 	dbg_mxc_isi_frame(&isi_cap->pdev->dev, "DST <<< ", &isi_cap->dst_f);
+#endif
 	// ^^^ ****************************************************************
 
 	mxc_isi_channel_init(mxc_isi);

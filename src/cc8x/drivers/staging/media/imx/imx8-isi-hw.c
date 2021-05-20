@@ -430,12 +430,6 @@ void mxc_isi_channel_set_crop(struct mxc_isi_dev *mxc_isi)
 	if ((src_f->o_height == src_f->height) &&
 	    (src_f->o_width == src_f->width)) {
 		mxc_isi->crop = 0;
-		// *** VC MIPI ************************************************
-		// val0 = 0;
-		// val1 = src_f->o_height | (src_f->o_width << CHNL_CROP_LRC_X_OFFSET);
-		// writel(val0, mxc_isi->regs + CHNL_CROP_ULC);
-		// writel((val1 + val0), mxc_isi->regs + CHNL_CROP_LRC);
-		// ************************************************************
 		writel(val, mxc_isi->regs + CHNL_IMG_CTRL);
 		return;
 	}
@@ -490,10 +484,7 @@ void mxc_isi_channel_set_scaling(struct mxc_isi_dev *mxc_isi,
 	    dst_f->width == src_f->width) {
 		mxc_isi->scale = 0;
 		mxc_isi_channel_clear_scaling(mxc_isi);
-		// *** VC MIPI ************************************************
 		dev_dbg(&mxc_isi->pdev->dev, "%s: no scale\n", __func__);
-		// dev_info(&mxc_isi->pdev->dev, "%s: no scale\n", __func__);
-		// ************************************************************
 		return;
 	}
 

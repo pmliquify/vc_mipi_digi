@@ -1,7 +1,7 @@
 #include "vc_mipi_core.h"
-#include <linux/errno.h>
 #include <linux/device.h>
 #include <linux/delay.h>
+#include <linux/errno.h>
 #include "vc_mipi_modules.h"
 
 #define MOD_REG_RESET           0x0100 // register  0 [0x0100]: reset and init register (R/W)
@@ -693,13 +693,13 @@ int vc_sen_set_exposure_dirty(struct vc_cam *cam, int value)
 
 	dev_dbg(dev, "%s(): Set sensor exposure: %u us\n", __FUNCTION__, value);
 	dev_dbg(dev, "%s(): Checking Limits Min1: %u, Min2: %u, Max: %u us\n", __FUNCTION__,
-		ctrl->set.exposure.min, ctrl->expo_time_min2, ctrl->set.exposure.max);
+		ctrl->exposure.min, ctrl->expo_time_min2, ctrl->exposure.max);
 
 	// TODO: It is assumed, that the exposure value is valid => remove clamping.
-	if (value < ctrl->set.exposure.min)
-		value = ctrl->set.exposure.min;
-	if (value > ctrl->set.exposure.max)
-		value = ctrl->set.exposure.max;
+	if (value < ctrl->exposure.min)
+		value = ctrl->exposure.min;
+	if (value > ctrl->exposure.max)
+		value = ctrl->exposure.max;
 
 	if (value < ctrl->expo_time_min2) {
 		dev_dbg(dev, "%s(): Set exposure by method 1 (%u < Min2 %u)\n", __FUNCTION__, value, ctrl->expo_time_min2);

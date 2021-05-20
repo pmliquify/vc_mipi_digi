@@ -86,13 +86,13 @@ if [[ $CMD == "dey" ]]; then
         . $BUILD_DIR/dey-3.0/mkproject.sh -p ccimx8x-sbc-pro
 fi
 
-if [[ $CMD == "target" ]]; then
+if [[ $CMD == "test" ]]; then
         #rm ~/.ssh/known_hosts
         #ssh-copy-id -i ~/.ssh/id_rsa.pub $TARGET_USER@$TARGET_NAME
     
         TARGET_DIR=/home/$TARGET_USER/test
         $TARGET_SHELL rm -Rf $TARGET_DIR
         $TARGET_SHELL mkdir -p $TARGET_DIR
-        scp $WORKING_DIR/target/* $TARGET_USER@$TARGET_NAME:$TARGET_DIR
+        scp $WORKING_DIR/test/* $TARGET_USER@$TARGET_NAME:$TARGET_DIR
         # $TARGET_SHELL chmod +x $TARGET_DIR/*.sh
 fi

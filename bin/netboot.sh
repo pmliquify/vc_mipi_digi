@@ -17,12 +17,12 @@ if [[ $1 == "a" || $1 == "d" ]]; then
         sudo cp $SOURCE_DIR/boot/dts/digi/ccimx8x-sbc-pro.dtb $TARGET_DIR/boot/ccimx8x-sbc-pro--5.4-r0.2-ccimx8x-sbc-pro.dtb
 fi
 
-if [[ $1 == "demo" ]]; then
+if [[ $1 == "test" ]]; then
         sudo mkdir -p $TARGET_DIR/home/root/test
-        sudo cp $WORKING_DIR/target/* $TARGET_DIR/home/root/test
+        sudo cp $WORKING_DIR/test/* $TARGET_DIR/home/root/test
 fi
 
-if [[ $1 == "purge" ]]; then
+if [[ $1 == "recover" ]]; then
         sudo rm -Rf $TARGET_DIR/*
         cd $TMP_DIR
         sudo tar xvfp dey-image-qt-fb-ccimx8x-sbc-pro.rootfs.tar.bz2 -C /exports/nfsroot-ccimx8x_sbc_pro
@@ -31,6 +31,6 @@ if [[ $1 == "purge" ]]; then
         sudo cp _ov_som_wifi_ccimx8x--5.4-r0.2-ccimx8x-sbc-pro.dtbo $TARGET_DIR/boot
 fi
 
-if [[ $1 == "a" || $1 == "k" || $1 = "d" || $1 == "purge" ]]; then
+if [[ $1 == "a" || $1 == "k" || $1 = "d" || $1 == "recover" ]]; then
         $TARGET_SHELL /sbin/reboot
 fi

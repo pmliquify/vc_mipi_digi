@@ -8,7 +8,11 @@
 #ifndef _V4L2_SUBDEV_H
 #define _V4L2_SUBDEV_H
 
+// *** VC MIPI ****************************************************************
+// Enables control ops in v4l2_subdev_core_ops
+// and in imx8-isi-cap.c and imx8-mipi-csi2.c
 #define CONFIG_VIDEO_ECAM
+// ****************************************************************************
 
 #include <linux/types.h>
 #include <linux/v4l2-subdev.h>

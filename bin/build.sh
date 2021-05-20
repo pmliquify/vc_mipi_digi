@@ -2,12 +2,6 @@
 #
 . config/configure.sh
 
-if [[ -z $1 ]]; then 
-        ./patch.sh f
-else
-        ./patch.sh
-fi 
-
 create_modules() {
         rm -Rf $MODULES_DIR
         mkdir -p $MODULES_DIR
@@ -20,15 +14,23 @@ create_modules() {
         rm -Rf $MODULES_DIR
 }
 
+if [[ ! $1 == "demo" ]]; then 
+        if [[ -z $1 ]]; then 
+                ./patch.sh f
+        else
+                ./patch.sh
+        fi 
+fi
+
 unset LD_LIBRARY_PATH
 . $GCC_DIR/environment-setup-aarch64-dey-linux
-
 export LDFLAGS="-O1 --hash-style=gnu --as-needed"
 
-cd $KERNEL_SOURCE
-make kernelversion
-make ccimx8_defconfig
-
+if [[ ! $1 == "demo" ]]; then 
+        cd $KERNEL_SOURCE
+        make kernelversion
+        make ccimx8_defconfig
+fi
 if [[ -z $1 ]]; then 
         make -j$(nproc)
         create_modules
@@ -46,10 +48,10 @@ if [[ $1 == "a" || $1 == "d" ]]; then
         echo "Build Device Tree ..."
         make dtbs
 fi
-if [[ $1 == "demo" ]]; then 
+if [[ $1 == "test" ]]; then 
     cd $WORKING_DIR/src/vcmipidemo/linux
     make
-    mv vcmipidemo $WORKING_DIR/target
-    mv vcimgnetsrv $WORKING_DIR/target
-    mv vctest $WORKING_DIR/target
+    mv vcmipidemo $WORKING_DIR/test
+    mv vcimgnetsrv $WORKING_DIR/test
+    mv vctest $WORKING_DIR/test
 fi

@@ -6,7 +6,9 @@
  *
  */
 
+// *** VC MIPI ****************************************************************
 // #define DEBUG
+// ****************************************************************************
 
 #include <linux/clk.h>
 #include <linux/delay.h>
@@ -542,11 +544,9 @@ static void mxc_mipi_csi2_csr_config(struct mxc_mipi_csi2_dev *csi2dev)
 	// struct v4l2_mbus_framefmt *mf = &csi2dev->format;
 	u32 val;
 
-	// *** VC MIPI ********************************************************
 	/* format */
 	val = 0;
 	writel(val, csi2dev->csr_regs + CSI2SS_DATA_TYPE);
-	// ********************************************************************
 
 	/* polarity */
 	val = readl(csi2dev->csr_regs + CSI2SS_PLM_CTRL);
@@ -671,11 +671,6 @@ static int mxc_csi2_get_sensor_fmt(struct mxc_mipi_csi2_dev *csi2dev)
 
 	/* Update input frame size and formate  */
 	memcpy(mf, &src_fmt.format, sizeof(struct v4l2_mbus_framefmt));
-
-	// *** VC MIPI ********************************************************
-	dev_dbg(&csi2dev->pdev->dev, "width=%d, height=%d, fmt.code=0x%x\n",
-		mf->width, mf->height, mf->code);
-	// ********************************************************************
 
 	/* Get rxhs settle */
 	if (src_fmt.format.reserved[0] != 0) {
@@ -1042,10 +1037,6 @@ static int mipi_csi2_set_fmt(struct v4l2_subdev *sd,
 	struct v4l2_subdev *sen_sd;
 	struct media_pad *source_pad;
 	int ret;
-
-	// *** VC MIPI ********************************************************
-	// v4l2_err(&csi2dev->sd, "%s\n", __FUNCTION__);
-	// ********************************************************************
 
 	/* Get remote source pad */
 	source_pad = mxc_csi2_get_remote_sensor_pad(csi2dev);
