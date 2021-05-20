@@ -1,9 +1,5 @@
-build/
-logs/
-tools/
-.DS_Store
 .vscode-ctags
 .vscode-ctags.next
-test/vcimgnetsrv
-test/vcmipidemo
-test/vctest
+build/
+temp/
+test/

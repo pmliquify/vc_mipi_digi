@@ -58,6 +58,14 @@ void dbg_mxc_isi_frame(struct device* dev, char *desc, struct mxc_isi_frame *fra
 struct mxc_isi_fmt mxc_isi_out_formats[] = {
 // vvv *** VC MIPI ************************************************************
 	{
+		.name		= "Y10-RAW",
+		.fourcc		= V4L2_PIX_FMT_Y10,
+		.depth		= { 16 },
+		.color		= MXC_ISI_OUT_FMT_RAW16, 	// Workaround
+		.memplanes	= 1,
+		.colplanes	= 1,
+		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
+	}, {
 		.name		= "SRGGB10-RAW",
 		.fourcc		= V4L2_PIX_FMT_SRGGB10,
 		.depth		= { 16 },

@@ -8,7 +8,7 @@ Linux kernel version: 5.4.84
 ## Version 0.3.0 ([History](VERSION.md))
 * Features
   * Supported cameras VC MIPI IMX327 / VC MIPI IMX327C   
-  * Image Streaming in SRGGB10-RAW format (4 bit left shifted).
+  * Image Streaming in Y10 and SRGGB10 format (4 bit left shifted).
   * vcmipidemo supports software implementation to correct the 4 bit left shift.
   * Exposure and Gain
 * Known Issues

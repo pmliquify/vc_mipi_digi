@@ -49,9 +49,10 @@ if [[ $1 == "a" || $1 == "d" ]]; then
         make dtbs
 fi
 if [[ $1 == "test" ]]; then 
-    cd $WORKING_DIR/src/vcmipidemo/linux
-    make
-    mv vcmipidemo $WORKING_DIR/test
-    mv vcimgnetsrv $WORKING_DIR/test
-    mv vctest $WORKING_DIR/test
+        cd $WORKING_DIR/src/vcmipidemo/linux
+        make
+        mkdir -p $WORKING_DIR/test
+        mv vcmipidemo $WORKING_DIR/test
+        mv vcimgnetsrv $WORKING_DIR/test
+        mv vctest $WORKING_DIR/test
 fi
