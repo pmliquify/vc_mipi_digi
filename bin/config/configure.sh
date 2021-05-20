@@ -19,7 +19,6 @@ IMAGE_URL=https://ftp1.digi.com/support/digiembeddedyocto/3.0/r3/images
 IMAGE_FILE=ccimx8x-sbc-pro-installer.zip
 UUU_URL=https://github.com/NXPmicro/mfgtools/releases/download/uuu_1.4.72
 
-# TARGET_NAME=ccimx8x-sbc-pro
-TARGET_NAME=192.168.2.20
+TARGET_NAME=ccimx8x-sbc-pro
 TARGET_USER=root
 TARGET_SHELL="ssh $TARGET_USER@$TARGET_NAME"
