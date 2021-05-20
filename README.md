@@ -1,16 +1,17 @@
 # Vision Components MIPI CSI-2 driver for DIGI ConnectCore 8X Development Kit
 ![VC MIPI camera](https://www.vision-components.com/fileadmin/external/documentation/hardware/VC_MIPI_Camera_Module/VC_MIPI_Camera_Module_Hardware_Operating_Manual-Dateien/mipi_sensor_front_back.png)
 
-Supported board: DIGI ConnectCore 8X Development Kit   
-
-Linux kernel version: 5.4.84   
-
 ## Version 0.3.0 ([History](VERSION.md))
+* Supported boards
+  * DIGI ConnectCore 8X Development Kit
+* Supported cameras 
+  * VC MIPI IMX327 / VC MIPI IMX327C  
+* Linux kernel 
+  * Version 5.4.84 
 * Features
-  * Supported cameras VC MIPI IMX327 / VC MIPI IMX327C   
   * Image Streaming in Y10 and SRGGB10 format (4 bit left shifted).
+  * Exposure and Gain can be set via V4L2 library.
   * vcmipidemo supports software implementation to correct the 4 bit left shift.
-  * Exposure and Gain
 * Known Issues
   * Handling for arbitrary image width and height not ready.
 
@@ -58,7 +59,7 @@ https://www.digi.com/resources/documentation/digidocs/embedded/dey/3.0/cc8x/yoct
 
 6. After boot up install the VC MIPI driver with the kernel image, modules and dtb files we have build in step 4.
    ```
-     $ ./flash.sh a
+     $ ./flash.sh all
    ```
 
 # Testing the camera
@@ -72,8 +73,8 @@ The system should start properly. *(There are some error messages that can be ig
 
 2. Build and install the vcmipidemo backend on the target.
    ```
-     $ ./build.sh demo
-     $ ./setup.sh target
+     $ ./build.sh test
+     $ ./setup.sh test
    ```
 
 3. Login to the target and check if the driver was loaded properly. You should see something similar to the output in the second box.
@@ -119,18 +120,18 @@ The system should start properly. *(There are some error messages that can be ig
       
    3. Open a second terminal, login and start the vcmipidemo to start the image stream. The application starts streaming 
       and should show some image information and the first few bytes from the image.
-      **Please note the option -ax4 to suppress ASCII output and option image information and the 4 bit shift correction** 
+      **Please note the option -ax4 to suppress ASCII output and the option to output image informations and apply the 4 bit shift correction** 
       ```
         $ ssh root@ccimx8x-sbc-pro
         
-        # ./test/vcmipidemo -ax                                 v    v    v    v    v    v    v    v    v    v
+        # ./test/vcmipidemo -ax -s 10000 -g 10                  v    v    v    v    v    v    v    v    v    v
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 9024 5022 f025 0022 7024 a022 0025 4022 2025 b022 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4025 7021 b024 7022 1025 1022 9025 8022 2025 7022 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 0025 f021 8024 d022 2025 5022 e024 7022 6025 1022 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - e024 7022 6025 4022 4024 4022 f024 c022 d024 e021
         ...
-        
-        # ./test/vcmipidemo -ax4      (shiftet 4 bits right)     v    v    v    v    v    v    v    v    v    v
+                                                               (shifted 4 bits right)
+        # ./test/vcmipidemo -ax4 -s 10000 -g 10                  v    v    v    v    v    v    v    v    v    v
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1502 4902 2502 4302 1002 4802 1902 5002 2302 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1a02 4602 2302 4502 2402 4202 1f02 4502 2402 
         img.org (fmt: RG10, dx: 1920, dy: 1080, pitch: 3840) - 4f02 1e02 4402 1502 4902 1a02 4102 1b02 5702 1c02 
