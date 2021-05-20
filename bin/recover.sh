@@ -14,7 +14,7 @@ if [ ! -d $RECOVERY_DIR ]; then
 
         wget $IMAGE_URL/$IMAGE_FILE
         unzip $IMAGE_FILE
-        rm $IMAGE_FILE
+        rm -f $IMAGE_FILE
         chmod +x install_linux_fw_uuu.sh
 
         wget $UUU_URL/uuu
@@ -34,4 +34,4 @@ read -n 1
 
 cd $RECOVERY_DIR
 sudo bash install_linux_fw_uuu.sh imx-boot-ccimx8x-sbc-pro-B0-2GB_32bit.bin-flash
-rm ~/.ssh/known_hosts
+rm -f ~/.ssh/known_hosts

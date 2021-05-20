@@ -9,7 +9,7 @@ create_modules() {
         make modules_install
         cd $MODULES_DIR
         echo Create module archive ...
-        rm $BUILD_DIR/modules.tar.gz 
+        rm -f $BUILD_DIR/modules.tar.gz 
         tar -czf ../modules.tar.gz .
         rm -Rf $MODULES_DIR
 }

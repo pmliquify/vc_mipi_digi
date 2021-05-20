@@ -208,7 +208,7 @@ int vc_mod_ctrl_init(struct vc_ctrl* ctrl, struct vc_desc* desc)
 		vc_init_imx327_ctrl(ctrl, desc); 
 		break;
 	default:
-		dev_err(dev, "%s(): Detected Module not supported!\n", __FUNCTION__);
+		dev_err(dev, "%s(): Detected Module with id 0x%04x not supported!\n", __FUNCTION__, desc->mod_id);
 		return 1;
 	}
 	return 0;
