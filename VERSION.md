@@ -1,5 +1,8 @@
 # Version History
 
+## v0.3.1 (Bugfix)
+  * VCImgNetClient: Images saved to file without color modification.
+
 ## v0.3.0 (Exposure and Gain)
   * New Features
     * Exposure and Gain can be set via V4L2 library.
