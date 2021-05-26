@@ -2,6 +2,10 @@
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 # Made by Vision Components 2015-2018 (MBE)
 
+
+PROGRAM_VERSION="1.0.2"
+
+
 import  pygtk
 pygtk.require('2.0')
 import  gtk
@@ -222,8 +226,6 @@ class  Backend(object):
 
             logging.debug('receiving  image size: ([x0,y0],[dx,dy],[incrx,incry]):([%4d,%4d],[%4d,%4d],[%2d,%2d])'
                            % (img_x0, img_y0, img_dx, img_dy, img_incrx, img_incry))
-            print('receiving  image size: ([x0,y0],[dx,dy],[incrx,incry]):([%4d,%4d],[%4d,%4d],[%2d,%2d])'
-                           % (img_x0, img_y0, img_dx, img_dy, img_incrx, img_incry))
 
             #img_data = bytearray()
             #while len(img_data) < img_bytes:
@@ -279,11 +281,14 @@ class  Backend(object):
             mv_img_data = memoryview(self.img['data'])
             if(chk_rgb_true):
                 dy /= 3
-                img_data_packed = bytearray(chain.from_iterable(izip(mv_img_data[2 * pitch * dy:], mv_img_data[1 * pitch * dy:], mv_img_data[0 * pitch * dy:])))
+                img_data_packed = bytearray(chain.from_iterable(izip(mv_img_data[0 * pitch * dy:], mv_img_data[1 * pitch * dy:], mv_img_data[2 * 
+pitch * dy:])))
             else:
                 dy /= 1
-                img_data_packed = bytearray(chain.from_iterable(izip(mv_img_data[0 * pitch * dy:], mv_img_data[0 * pitch * dy:], mv_img_data[0 * pitch * dy:])))
-            cpb = gtk.gdk.pixbuf_new_from_data(buffer(img_data_packed), gtk.gdk.COLORSPACE_RGB, False, 8, dx, dy, 3*pitch)
+                img_data_packed = bytearray(chain.from_iterable(izip(mv_img_data[0 * pitch * dy:], mv_img_data[0 * pitch * dy:], mv_img_data[0 * 
+pitch * dy:])))
+            cpb = gtk.gdk.pixbuf_new_from_data(buffer(img_data_packed), 
+gtk.gdk.COLORSPACE_RGB, False, 8, dx, dy, 3*pitch)
             cpb.save(path, "png")
             
     
@@ -390,39 +395,48 @@ class  Frontend(object):
                     self.tbl.attach(self.lbl_ip, 0,1, 0,1, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.lbl_ip.show()
                     self.entry_ip = gtk.Entry()
-                    self.tbl.attach(self.entry_ip, 1,3, 0,1, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.entry_ip, 1,3, 0,1, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.entry_ip.show()
                     # Port
                     self.lbl_port = gtk.Label("Server Port")
-                    self.tbl.attach(self.lbl_port, 0,1, 1,2, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.lbl_port, 0,1, 1,2, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.lbl_port.show()
                     self.adj_port = gtk.Adjustment(value=2002, lower=0, upper=64000, step_incr=1, page_incr=100, page_size=0)
                     self.entry_port = gtk.SpinButton(self.adj_port, climb_rate=1, digits=0)
-                    self.tbl.attach(self.entry_port, 1,3, 1,2, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.entry_port, 1,3, 1,2, gtk.EXPAND 
+| gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.entry_port.show()
                     # x0, y0
                     self.lbl_x0y0 = gtk.Label("[x0, y0]")
-                    self.tbl.attach(self.lbl_x0y0, 0,1, 2,3, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.lbl_x0y0, 0,1, 2,3, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.lbl_x0y0.show()
-                    self.adj_x0 = gtk.Adjustment(value=0, lower=0, upper=5200, step_incr=1, page_incr=100, page_size=0)
+                    self.adj_x0 = gtk.Adjustment(value=0, lower=0, upper=11111, step_incr=1, page_incr=100, page_size=0)
                     self.entry_x0 = gtk.SpinButton(self.adj_x0, climb_rate=1, digits=0)
-                    self.tbl.attach(self.entry_x0, 1,2, 2,3, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.entry_x0, 1,2, 2,3, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.entry_x0.show()
-                    self.adj_y0 = gtk.Adjustment(value=0, lower=0, upper=5200, step_incr=1, page_incr=100, page_size=0)
+                    self.adj_y0 = gtk.Adjustment(value=0, lower=0, upper=11111, step_incr=1, page_incr=100, page_size=0)
                     self.entry_y0 = gtk.SpinButton(self.adj_y0, climb_rate=1, digits=0)
-                    self.tbl.attach(self.entry_y0, 2,3, 2,3, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.entry_y0, 2,3, 2,3, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.entry_y0.show()
                     # dx, dy
                     self.lbl_dxdy = gtk.Label("[dx, dy]")
-                    self.tbl.attach(self.lbl_dxdy, 0,1, 3,4, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.lbl_dxdy, 0,1, 3,4, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.lbl_dxdy.show()
-                    self.adj_dx = gtk.Adjustment(value=0, lower=0, upper=5200, step_incr=1, page_incr=100, page_size=0)
+                    self.adj_dx = gtk.Adjustment(value=0, lower=0, upper=11111, step_incr=1, page_incr=100, page_size=0)
                     self.entry_dx = gtk.SpinButton(self.adj_dx, climb_rate=1, digits=0)
-                    self.tbl.attach(self.entry_dx, 1,2, 3,4, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.entry_dx, 1,2, 3,4, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.entry_dx.show()
-                    self.adj_dy = gtk.Adjustment(value=0, lower=0, upper=5200, step_incr=1, page_incr=100, page_size=0)
+                    self.adj_dy = gtk.Adjustment(value=0, lower=0, upper=11111, step_incr=1, page_incr=100, page_size=0)
                     self.entry_dy = gtk.SpinButton(self.adj_dy, climb_rate=1, digits=0)
-                    self.tbl.attach(self.entry_dy, 2,3, 3,4, gtk.EXPAND | gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
+                    self.tbl.attach(self.entry_dy, 2,3, 3,4, gtk.EXPAND | 
+gtk.SHRINK | gtk.FILL,  gtk.FILL, 0, 0)
                     self.entry_dy.show()
                     # incrx, incry
                     self.lbl_incrxincry = gtk.Label("[incrx, incry]")
@@ -500,16 +514,16 @@ class  Frontend(object):
                     # Ruler horizontal/vertical
                     self.hruler = gtk.HRuler()
                     self.hruler.set_metric(gtk.PIXELS)
-                    self.hruler.set_range(0, 5200, 0, 5200)
+                    self.hruler.set_range(0, 11111, 0, 11111)
                     
                     self.vruler = gtk.VRuler()
                     self.vruler.set_metric(gtk.PIXELS)
-                    self.vruler.set_range(0, 5200, 0, 5200)
+                    self.vruler.set_range(0, 11111, 0, 11111)
                     
                     # Scrolled Window containing drawing Area
                     self.area = gtk.DrawingArea()
                     self.area.set_events(gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.POINTER_MOTION_HINT_MASK )
-                    self.area.set_size_request(5200, 5200)
+                    self.area.set_size_request(11111, 11111)
                     self.area.connect("expose-event", self.area_expose_cb)
                     
                     self.sw = gtk.ScrolledWindow()
@@ -590,11 +604,22 @@ class  Frontend(object):
 
                     # locale variables are faster than global!
                     
-                    afalsecolor_r = [255, 5, 11, 17, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 83, 89, 95, 101, 107, 113, 119, 125, 125, 131, 137, 143, 149, 155, 161, 167, 173, 179, 191, 197, 203, 209, 215, 221, 227, 233, 239, 245, 251, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 250, 244, 238, 232, 226, 220, 214, 208, 202, 196, 190, 184, 178, 172, 166, 160, 154, 148, 142, 136, 130, 124, 118, 112, 106, 100, 94, 88, 82, 76, 70, 64, 58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98, 104, 110, 116, 122, 128, 134, 140, 146, 152, 158, 164, 170, 176, 182, 188, 194, 200, 206, 212, 218, 224, 230, 236, 242, 248, 255]
+                    afalsecolor_r = [255, 5, 11, 17, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 83, 89, 95, 101, 107, 113, 119, 125, 125, 131, 137, 
+143, 149, 155, 161, 167, 173, 179, 191, 197, 203, 209, 215, 221, 227, 233, 239, 245, 251, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 
+255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 250, 244, 238, 232, 226, 220, 214, 208, 202, 196, 190, 184, 178, 172, 166, 160, 154, 148, 142, 136, 130, 124, 118, 112, 106, 100, 94, 88, 82, 76, 70, 64, 58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 
+86, 92, 98, 104, 110, 116, 122, 128, 134, 140, 146, 152, 158, 164, 170, 176, 182, 188, 194, 200, 206, 212, 218, 224, 230, 236, 242, 248, 255]
 
-                    afalsecolor_g = [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98, 104, 110, 116, 122, 128, 134, 140, 146, 152, 158, 164, 170, 176, 182, 188, 194, 200, 206, 212, 218, 224, 230, 236, 242, 248, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 250, 244, 238, 232, 226, 220, 214, 208, 202, 196, 190, 184, 178, 172, 166, 160, 154, 148, 142, 136, 130, 124, 118, 112, 106, 100, 94, 88, 82, 76, 70, 64, 58, 52, 46, 40, 34, 28, 22, 16, 10, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    afalsecolor_g = [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98, 104, 110, 116, 122, 128, 134, 140, 146, 152, 158, 164, 170, 176, 182, 188, 194, 200, 206, 212, 218, 224, 230, 236, 242, 248, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 
+255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 250, 244, 238, 
+232, 226, 220, 214, 208, 202, 196, 190, 184, 178, 172, 166, 160, 154, 148, 142, 136, 130, 124, 118, 112, 106, 100, 94, 88, 82, 76, 70, 64, 58, 52, 
+46, 40, 34, 28, 22, 16, 10, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-                    afalsecolor_b = [255,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2,  8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98,104,110,116,122,128,134,140,146,152,158,164,170,176,182,188,194,200,206,212,218,224,230,236,242,248,254,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255]
+                    afalsecolor_b = [255,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2,  8, 14, 20, 26, 32, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92, 98,104,110,116,122,128,134,140,146,152,158,164,170,176,182,188,194,200,206,212,218,224,230,236,242,248,254,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255]
 
 
                     if('rgb'==self.how_select):
@@ -724,7 +749,8 @@ class  Frontend(object):
             
             about = gtk.AboutDialog()
             about.set_name("VCImgNetClient")
-            about.set_copyright("(C) 2015-2016 by Vision Components")
+            about.set_version(PROGRAM_VERSION)
+            about.set_copyright("(C) 2015-2018 by Vision Components")
             about.connect("response", lambda self, r: self.destroy())
             about.set_icon(appicon)
             about.show()
@@ -739,11 +765,27 @@ class  Main(Backend, Frontend):
         the graphical user interface and the backend.
     """
 
-    def  __init__(self):
+    def  __init__(self, args):
         Backend.__init__(self)
         Frontend.__init__(self, self.img_access)
 
-        self.winMain.content.settings.btn_receive_img.connect("toggled", self.do_receive_img_start, "btn_receive_img")
+        if args.IP:
+             self.com.srv_ip = str(args.IP)
+        if args.maximize:
+             self.winMain.window.maximize()
+        if args.x0:
+             self.com.x0 = str(args.x0)
+        if args.y0:
+             self.com.y0 = str(args.y0)
+        if args.dx:
+             self.com.dx = str(args.dx)
+        if args.dy:
+             self.com.dy = str(args.dy)
+        if args.incrx:
+             self.com.incrx = str(args.incrx)
+        if args.incry:
+             self.com.incry = str(args.incry)
+
         self.winMain.content.settings.btn_store_img.connect("clicked", self.do_store_img, "btn_store_img")
         self.winMain.content.settings.btn_store_img.set_sensitive(False)
         self.winMain.content.settings.entry_ip.set_text(   str(self.com.srv_ip  ))
@@ -761,6 +803,10 @@ class  Main(Backend, Frontend):
         self.winMain.content.settings.btn_how_select_rgb.connect(   "toggled", self.tag_select_toggler_callback, 'rgb'   )
         self.winMain.content.settings.entry_imagePath.set_text(tempfile.gettempdir())
         self.winMain.content.settings.chk_imgStoreContinuous.set_active(False)
+        self.winMain.content.settings.btn_receive_img.connect("toggled", self.do_receive_img_start, "btn_receive_img")
+        #as last element to have all values to be set, will cause the event to start connection
+        self.winMain.content.settings.btn_receive_img.set_active(True if args.connect else False)
+        #self.winMain.content.settings.btn_receive_img.grab_focus()
 
     # Enables the Gui Window to update the Image Content Display asynchronously (e.g. by scrolling over the Image)
     def  img_access(self):
@@ -792,7 +838,8 @@ class  Main(Backend, Frontend):
                 self.com.receive_image()
             except Exception, e:
                 self.com.disconnect()
-                msgwindow = gtk.MessageDialog(parent=None, flags=0, type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE, message_format=None)
+                msgwindow = gtk.MessageDialog(parent=None, flags=0, 
+type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE, message_format=None)
                 msgwindow.set_markup("Failed to connect to\nIP %s  Port %d\n%s" % (self.com.srv_ip, self.com.srv_port, e))
                 msgwindow.run()
                 msgwindow.destroy()
@@ -838,9 +885,31 @@ class  Main(Backend, Frontend):
 #import profile
 #profile.run('Main();gtk.main()')
 
+
+################################################################################
+
+def Parse_command_line_options():
+   from argparse import ArgumentParser
+
+   parser = ArgumentParser()
+   parser.add_argument("-c", "--connect",  action="store_true", help="automatically connect and receive image")
+   parser.add_argument("-m", "--maximize", action="store_true", help="maximizes window")
+   parser.add_argument("-x", "--x0", help="top-left pixel position")
+   parser.add_argument("-y", "--y0", help="top-right pixel position")
+   parser.add_argument("-X", "--dx", help="image width in pixel")
+   parser.add_argument("-Y", "--dy", help="image height in pixel")
+   parser.add_argument("-i", "--incrx", help="image horizontal pixel increment")
+   parser.add_argument("-j", "--incry", help="image vertical pixel increment")
+   parser.add_argument("IP", help="overwrites default IP address", nargs='?', default=None)
+
+   args = parser.parse_args()
+
+   return args
+
 ################################################################################
 if __name__=="__main__":
-    Main()
+    args = Parse_command_line_options()
+    Main(args)
     gtk.main() # GUI Loop
 
 

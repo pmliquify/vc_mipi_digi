@@ -56,7 +56,7 @@ if [[ $CMD == "netboot" ]]; then
         #wget $DEY_IMG_URL/dey-image-qt-fb-ccimx8x-sbc-pro.rootfs.ext4
         #wget $DEY_IMG_URL/dey-image-qt-fb-ccimx8x-sbc-pro.rootfs.manifest    
 
-        ./install.sh image
+        ./netboot.sh recover
 
         # => setenv autoload no
         # => dhcp
