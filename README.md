@@ -1,7 +1,7 @@
 # Vision Components MIPI CSI-2 driver for DIGI ConnectCore 8X Development Kit
 ![VC MIPI camera](https://www.vision-components.com/fileadmin/external/documentation/hardware/VC_MIPI_Camera_Module/VC_MIPI_Camera_Module_Hardware_Operating_Manual-Dateien/mipi_sensor_front_back.png)
 
-## Version 0.3.0 ([History](VERSION.md))
+## Version 0.3.1 ([History](VERSION.md))
 * Supported boards
   * DIGI ConnectCore 8X Development Kit
 * Supported cameras 
@@ -12,6 +12,8 @@
   * Image Streaming in Y10 and SRGGB10 format (4 bit left shifted).
   * Exposure and Gain can be set via V4L2 library.
   * vcmipidemo supports software implementation to correct the 4 bit left shift.
+* Bugfixes
+  * VCImgNetClient: Images saved to file without color modification.
 * Known Issues
   * Handling for arbitrary image width and height not ready.
 
