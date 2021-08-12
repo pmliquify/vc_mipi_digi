@@ -5,10 +5,12 @@
 $TARGET_SHELL mount -o remount,rw /dev/mmcblk0p1 /mnt/linux
 
 if [[ $1 == "all" || $1 == "k" ]]; then
+        echo "Flash kernel ..."
         scp $KERNEL_SOURCE/arch/arm64/boot/Image.gz $TARGET_USER@$TARGET_NAME:/mnt/linux/Image.gz-ccimx8x-sbc-pro.bin
 
 fi
 # if [[ $1 == "all" || $1 == "m" ]]; then
+#         echo "Flash kernel modules ..."
 #         scp -r $BUILD_DIR/modules/* $TARGET_USER@$TARGET_NAME:/
 
 #         scp $BUILD_DIR/modules.tar.gz $TARGET_USER@$TARGET_NAME:/home/$TARGET_USER
@@ -16,6 +18,7 @@ fi
 #         $TARGET_SHELL rm -f modules.tar.gz
 # fi
 if [[ $1 == "all" || $1 == "d" ]]; then
+        echo "Flash device tree ..."
         scp $KERNEL_SOURCE/arch/arm64/boot/dts/digi/ccimx8x-sbc-pro.dtb $TARGET_USER@$TARGET_NAME:/mnt/linux/        
 fi
 
